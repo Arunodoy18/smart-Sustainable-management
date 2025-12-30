@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "waste_management"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
+    
+    # Supabase
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
 
     # Vector DB
     QDRANT_HOST: str = "localhost"

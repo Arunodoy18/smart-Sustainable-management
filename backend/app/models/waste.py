@@ -13,4 +13,4 @@ class WasteEntry(Base):
     status = Column(String, default="pending") # pending, collected
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    user = relationship("User", back_ref="waste_entries")
+    user = relationship("User", backref="waste_entries")
