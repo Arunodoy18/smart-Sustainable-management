@@ -21,3 +21,7 @@
 2025-12-31 01:16:32.452 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user demo-user-001 from image https://upload.wikimedia.org/wikipedia/commons/3/3a/Plastic_bottles.jpg
 2025-12-31 01:16:48.373 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user demo-user-001 from image https://upload.wikimedia.org/wikipedia/commons/3/3a/Plastic_bottles.jpg
 2025-12-31 01:16:48.374 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user demo-user-001 from image https://upload.wikimedia.org/wikipedia/commons/3/3a/Plastic_bottles.jpg
+2025-12-31 01:18:28.128 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user test-user-001 from image https://upload.wikimedia.org/wikipedia/commons/3/3a/Plastic_bottles.jpg
+2025-12-31 01:19:07.999 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user supabase-test-001 from image https://upload.wikimedia.org/wikipedia/commons/6/6c/Food_waste.jpg
+2025-12-31 01:19:09.651 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user supabase-test-001 from image https://upload.wikimedia.org/wikipedia/commons/6/6c/Food_waste.jpg
+2025-12-31 01:34:18.832 | INFO     | app.agents.base_agent:log_activity:29 - [WasteClassifier] Classifying waste for user test-user-001 from image https://upload.wikimedia.org/wikipedia/commons/3/3a/Plastic_bottles.jpg
