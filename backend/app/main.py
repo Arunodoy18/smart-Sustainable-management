@@ -3,12 +3,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import waste
 from app.core.config import settings
 from app.core.logger import setup_logger
+from contextlib import asynccontextmanager
 
 setup_logger()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize database
+    from app.db.init_db import init_db
+    init_db()
+    yield
+    # Shutdown: cleanup if needed
+    pass
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    description="AI-powered waste management system with confidence-aware recommendations",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Set all CORS enabled origins
@@ -24,4 +37,14 @@ app.include_router(waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["w
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Smart Waste Management AI API", "docs": "/docs"}
+    return {
+        "message": "Welcome to Smart Waste Management AI API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "features": [
+            "AI-powered waste classification",
+            "Confidence-aware recommendations",
+            "Driver collection verification",
+            "Real-time analytics"
+        ]
+    }

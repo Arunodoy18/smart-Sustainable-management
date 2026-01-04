@@ -7,11 +7,12 @@ class WasteType(str, Enum):
     RECYCLABLE = "recyclable"
     HAZARDOUS = "hazardous"
     E_WASTE = "e-waste"
+    GENERAL = "general"
     UNKNOWN = "unknown"
 
 class WasteClassificationInput(BaseModel):
     image_url: str
-    user_id: str
+    user_id: int
     location: Optional[str] = None
 
 class WasteClassificationOutput(BaseModel):
