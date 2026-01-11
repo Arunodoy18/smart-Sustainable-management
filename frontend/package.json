@@ -9,7 +9,11 @@
     "axios": "^1.6.0",
     "recharts": "^2.10.0",
     "@heroicons/react": "^2.1.0",
-    "react-webcam": "^7.2.0"
+    "react-webcam": "^7.2.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "framer-motion": "^10.16.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

@@ -1,15 +1,16 @@
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, Float
+from sqlalchemy import Boolean, Column, String, DateTime, Float, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 from app.db.base_class import Base
 
-class User(Base):
-    id = Column(Integer, primary_key=True, index=True)
+class Profile(Base):
+    __tablename__ = "profiles"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True)
     full_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    is_active = Column(Boolean(), default=True)
-    is_superuser = Column(Boolean(), default=False)
     role = Column(String, default="user") # user, driver, admin
+    is_active = Column(Boolean(), default=True)
     
     # Profile details
     phone = Column(String, nullable=True)

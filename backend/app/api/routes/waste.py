@@ -1,163 +1,150 @@
-from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
-from app.schemas.waste import WasteClassificationInput, WasteClassificationOutput
+from app.api import deps
 from app.services.waste_service import WasteService
-from app.api.deps import get_db
-from pydantic import BaseModel
-from typing import List, Optional
+from app.schemas.waste import WasteEntryResponse, WasteEntryUpdate
+from app.models.user import Profile
+from app.core.coordinator import coordinator
+import json
+from uuid import UUID
 
 router = APIRouter()
 
-class WasteSubmitRequest(BaseModel):
-    user_id: int
-    image_url: str
-    location: Optional[dict] = None
+@router.post("/classify", response_model=WasteEntryResponse)
+async def classify_waste(
+    *,
+    db: Session = Depends(deps.get_db),
+    file: UploadFile = File(...),
+    location: Optional[str] = Form(None),
+    current_user: Profile = Depends(deps.get_current_active_user)
+) -> Any:
+    """
+    Classify waste from an uploaded image and record it.
+    """
+    waste_service = WasteService(db)
+    
+    # Step 1: Upload image to Supabase
+    file_content = await file.read()
+    image_url = await waste_service.upload_image(file_content, file.filename)
+    
+    # Step 2: Classify and record
+    loc_data = json.loads(location) if location else None
+    entry = await waste_service.classify_and_record(
+        user_id=current_user.id,
+        image_url=image_url,
+        location=loc_data
+    )
+    
+    return entry
 
-class CollectionRequest(BaseModel):
-    entry_id: int
-    collector_id: int
-    collection_image_url: Optional[str] = None
+@router.get("/history", response_model=List[WasteEntryResponse])
+def get_history(
+    db: Session = Depends(deps.get_db),
+    current_user: Profile = Depends(deps.get_current_active_user),
+    limit: int = 50
+) -> Any:
+    """
+    Get user's waste classification history.
+    """
+    waste_service = WasteService(db)
+    return waste_service.get_user_entries(user_id=current_user.id, limit=limit)
 
-@router.post("/classify")
-async def classify_waste(request: WasteSubmitRequest, db: Session = Depends(get_db)):
+@router.get("/pending", response_model=List[WasteEntryResponse])
+def get_pending_pickups(
+    db: Session = Depends(deps.get_db),
+    current_driver: Profile = Depends(deps.get_current_active_driver)
+) -> Any:
     """
-    Full intelligence pipeline: Classify → Segregate → Recommend → Record
-    Returns comprehensive waste analysis with confidence-aware recommendations.
+    Get all pending pickups (Driver only).
     """
-    try:
-        service = WasteService(db)
-        result = await service.classify_and_record(
-            user_id=request.user_id,
-            image_url=request.image_url,
-            location=request.location
-        )
-        return {
-            "success": True,
-            "message": "Waste classified and recorded successfully",
-            "data": result
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    waste_service = WasteService(db)
+    return waste_service.get_pending_pickups()
 
-@router.get("/entries/{user_id}")
-async def get_user_entries(user_id: int, limit: int = 50, db: Session = Depends(get_db)):
+@router.post("/{entry_id}/accept", response_model=WasteEntryResponse)
+async def accept_pickup(
+    entry_id: UUID,
+    db: Session = Depends(deps.get_db),
+    current_driver: Profile = Depends(deps.get_current_active_driver)
+) -> Any:
     """
-    Get waste entry history for a specific user
+    Driver accepts a pending pickup.
     """
-    try:
-        service = WasteService(db)
-        entries = service.get_user_entries(user_id, limit)
-        return {
-            "success": True,
-            "count": len(entries),
-            "entries": [
-                {
-                    "id": e.id,
-                    "waste_type": e.waste_type,
-                    "confidence": e.confidence_score,
-                    "is_recyclable": e.is_recyclable,
-                    "risk_level": e.risk_level,
-                    "recommended_action": e.recommended_action,
-                    "collection_type": e.collection_type,
-                    "status": e.status,
-                    "created_at": e.created_at.isoformat(),
-                    "collected_at": e.collected_at.isoformat() if e.collected_at else None
-                }
-                for e in entries
-            ]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    waste_service = WasteService(db)
+    return await waste_service.update_status(
+        entry_id=entry_id,
+        status="accepted",
+        collector_id=current_driver.id
+    )
 
-@router.get("/entry/{entry_id}")
-async def get_entry_detail(entry_id: int, db: Session = Depends(get_db)):
+@router.post("/{entry_id}/collect", response_model=WasteEntryResponse)
+async def collect_waste(
+    entry_id: UUID,
+    file: UploadFile = File(...),
+    location: Optional[str] = Form(None),
+    db: Session = Depends(deps.get_db),
+    current_driver: Profile = Depends(deps.get_current_active_driver)
+) -> Any:
     """
-    Get full details of a specific waste entry
+    Driver confirms collection with proof image.
     """
-    try:
-        service = WasteService(db)
-        entry = service.get_entry_by_id(entry_id)
-        if not entry:
-            raise HTTPException(status_code=404, detail="Entry not found")
-        
-        return {
-            "success": True,
-            "entry": {
-                "id": entry.id,
-                "user_id": entry.user_id,
-                "waste_type": entry.waste_type,
-                "confidence": entry.confidence_score,
-                "image_url": entry.image_url,
-                "location": entry.location,
-                "is_recyclable": entry.is_recyclable,
-                "requires_special_handling": entry.requires_special_handling,
-                "risk_level": entry.risk_level,
-                "recommended_action": entry.recommended_action,
-                "instructions": entry.instructions,
-                "collection_type": entry.collection_type,
-                "impact_note": entry.impact_note,
-                "status": entry.status,
-                "collected_by": entry.collected_by,
-                "collection_image_url": entry.collection_image_url,
-                "created_at": entry.created_at.isoformat(),
-                "collected_at": entry.collected_at.isoformat() if entry.collected_at else None
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/collect")
-async def mark_collected(request: CollectionRequest, db: Session = Depends(get_db)):
-    """
-    Driver collection verification - creates accountability trail
-    """
-    try:
-        service = WasteService(db)
-        entry = service.update_collection_status(
-            entry_id=request.entry_id,
-            collector_id=request.collector_id,
-            collection_image_url=request.collection_image_url
-        )
-        
-        if not entry:
-            raise HTTPException(status_code=404, detail="Entry not found")
-        
-        return {
-            "success": True,
-            "message": "Collection verified successfully",
-            "entry": {
-                "id": entry.id,
-                "status": entry.status,
-                "collected_by": entry.collected_by,
-                "collected_at": entry.collected_at.isoformat()
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    waste_service = WasteService(db)
+    
+    # Upload proof image
+    file_content = await file.read()
+    collection_image_url = await waste_service.upload_image(file_content, file.filename)
+    
+    loc_data = json.loads(location) if location else None
+    
+    return await waste_service.update_status(
+        entry_id=entry_id,
+        status="collected",
+        collector_id=current_driver.id,
+        collection_image_url=collection_image_url,
+        driver_location=loc_data
+    )
 
 @router.get("/analytics")
-async def get_analytics(user_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_analytics(
+    db: Session = Depends(deps.get_db),
+    current_user: Profile = Depends(deps.get_current_active_user)
+) -> Any:
     """
-    Get waste management analytics
-    Optionally filter by user_id, otherwise return system-wide stats
+    Get real-time analytics.
+    """
+    waste_service = WasteService(db)
+    return waste_service.get_analytics()
+
+@router.websocket("/ws/{token}")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: str
+):
+    """
+    Real-time coordination via WebSocket.
     """
     try:
-        service = WasteService(db)
-        analytics = service.get_analytics(user_id)
-        return {
-            "success": True,
-            "analytics": analytics
-        }
+        # Validate token and get user
+        # Note: In production, use a more secure way to pass tokens to WebSockets
+        from app.core.supabase import supabase
+        res = supabase.auth.get_user(token)
+        if not res.user:
+            await websocket.close(code=1008)
+            return
+            
+        user_id = res.user.id
+        role = res.user.user_metadata.get("role", "user")
+        
+        await coordinator.connect(websocket, user_id, role)
+        
+        try:
+            while True:
+                # Keep connection alive and handle incoming messages if needed
+                data = await websocket.receive_text()
+                # Handle heartbeat or other messages
+        except WebSocketDisconnect:
+            coordinator.disconnect(websocket, user_id, role)
+            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/health")
-async def health_check():
-    """
-    API health check
-    """
-    return {"status": "healthy", "service": "waste-management-api"}
+        print(f"WebSocket error: {e}")
+        await websocket.close(code=1011)

@@ -1,36 +1,62 @@
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from enum import Enum
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from datetime import datetime
+from uuid import UUID
 
 class WasteType(str, Enum):
-    ORGANIC = "organic"
     RECYCLABLE = "recyclable"
+    ORGANIC = "organic"
+    E_WASTE = "e_waste"
     HAZARDOUS = "hazardous"
-    E_WASTE = "e-waste"
     GENERAL = "general"
-    UNKNOWN = "unknown"
 
 class WasteClassificationInput(BaseModel):
-    image_url: str
-    user_id: int
-    location: Optional[str] = None
+    image_url: Optional[str] = None
+    user_id: Optional[UUID] = None
+    location: Optional[Dict[str, float]] = None
 
 class WasteClassificationOutput(BaseModel):
-    waste_type: WasteType
-    confidence: float
+    waste_type: str
+    confidence_score: float
     detected_objects: List[str]
-    is_segregation_correct: bool
-    violation_details: Optional[str] = None
+    is_recyclable: bool
+    requires_special_handling: bool
+    risk_level: str
+    recommended_action: str
+    instructions: List[str]
+    collection_type: str
+    impact_note: str
 
-class PickupVerificationInput(BaseModel):
-    pickup_id: str
-    driver_id: str
-    bin_image_url: str
-    waste_type_expected: WasteType
+class WasteEntryCreate(BaseModel):
+    image_url: str
+    location: Optional[Dict[str, float]] = None
 
-class PickupVerificationOutput(BaseModel):
-    verified: bool
-    actual_waste_type: WasteType
-    completeness_score: float
-    penalty_applied: bool = False
-    reward_points: int = 0
+class WasteEntryUpdate(BaseModel):
+    status: str
+    collected_by: Optional[UUID] = None
+    collection_image_url: Optional[str] = None
+    collected_at: Optional[datetime] = None
+
+class WasteEntryResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    waste_type: str
+    confidence_score: float
+    image_url: str
+    location: Optional[Dict[str, Any]] = None
+    is_recyclable: bool
+    risk_level: str
+    recommended_action: str
+    instructions: List[str]
+    collection_type: str
+    impact_note: str
+    status: str
+    collected_by: Optional[UUID] = None
+    collection_image_url: Optional[str] = None
+    collected_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

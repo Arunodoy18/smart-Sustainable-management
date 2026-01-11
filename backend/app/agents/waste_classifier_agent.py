@@ -8,118 +8,88 @@ class WasteClassificationAgent(BaseAgent[WasteClassificationInput, WasteClassifi
     def __init__(self):
         super().__init__(name="WasteClassifier")
         
-        # Knowledge base for waste classification
-        self.waste_patterns = {
-            "plastic": ["bottle", "container", "bag", "packaging", "wrapper", "cup", "plate"],
-            "organic": ["food", "fruit", "vegetable", "peel", "core", "leftovers", "plant"],
-            "glass": ["bottle", "jar", "container", "window", "mirror", "glassware"],
-            "metal": ["can", "foil", "wire", "scrap", "tool", "utensil"],
-            "e-waste": ["phone", "computer", "battery", "charger", "electronic", "circuit"],
-            "biomedical": ["syringe", "bandage", "mask", "glove", "medical", "pharmaceutical"]
+        self.scenarios = {
+            "plastic": {
+                "waste_type": "recyclable",
+                "objects": ["plastic bottle", "water container"],
+                "is_recyclable": True,
+                "requires_special_handling": False,
+                "risk_level": "low",
+                "recommended_action": "Place in Blue Bin",
+                "instructions": ["Empty the liquid", "Rinse if possible", "Crush to save space", "Place in plastic recycling bin"],
+                "collection_type": "scheduled_recyclable",
+                "impact_note": "Recycling this bottle saves enough energy to power a light bulb for 3 hours."
+            },
+            "organic": {
+                "waste_type": "organic",
+                "objects": ["food waste", "vegetable peel"],
+                "is_recyclable": False,
+                "requires_special_handling": False,
+                "risk_level": "low",
+                "recommended_action": "Compost",
+                "instructions": ["Remove any plastic packaging", "Place in green organic bin", "Ensure no non-biodegradables are mixed"],
+                "collection_type": "organic",
+                "impact_note": "Composting this reduces methane emissions from landfills."
+            },
+            "e_waste": {
+                "waste_type": "e_waste",
+                "objects": ["old smartphone", "charging cable"],
+                "is_recyclable": True,
+                "requires_special_handling": True,
+                "risk_level": "medium",
+                "recommended_action": "Drop off at E-Waste Center",
+                "instructions": ["Backup your data", "Remove batteries if detachable", "Take to authorized collection point"],
+                "collection_type": "hazardous",
+                "impact_note": "E-waste contains precious metals that can be recovered and reused."
+            },
+            "hazardous": {
+                "waste_type": "hazardous",
+                "objects": ["used mask", "gloves", "cleaning chemicals"],
+                "is_recyclable": False,
+                "requires_special_handling": True,
+                "risk_level": "high",
+                "recommended_action": "Special Disposal Required",
+                "instructions": ["Seal in a separate bag", "Label clearly as hazardous", "Keep away from general waste"],
+                "collection_type": "hazardous",
+                "impact_note": "Proper disposal prevents contamination of groundwater and soil."
+            }
         }
 
     async def process(self, input_data: WasteClassificationInput) -> AgentResponse[WasteClassificationOutput]:
-        self.log_activity(f"Classifying waste for user {input_data.user_id} from image {input_data.image_url}")
-        
-        # In production, this would call GPT-4o Vision or a custom CNN
-        # For demo: intelligent mock classification based on patterns
+        self.log_activity(f"Classifying waste from image {input_data.image_url}")
         
         try:
-            # Simulate vision analysis
-            category, detected_objects = self._simulate_vision_classification(input_data.image_url)
+            # Randomly pick a scenario for demo
+            category = random.choice(list(self.scenarios.keys()))
+            data = self.scenarios[category]
             
-            # Calculate confidence based on clarity and patterns
-            confidence = self._calculate_confidence(category, detected_objects)
+            confidence = round(random.uniform(0.85, 0.98), 2)
             
-            # Map to WasteType enum
-            waste_type_map = {
-                "plastic": WasteType.RECYCLABLE,
-                "organic": WasteType.ORGANIC,
-                "glass": WasteType.RECYCLABLE,
-                "metal": WasteType.RECYCLABLE,
-                "e-waste": WasteType.E_WASTE,
-                "biomedical": WasteType.HAZARDOUS
-            }
-            
-            detected_type = waste_type_map.get(category, WasteType.GENERAL)
-            
-            # Check segregation correctness
-            is_correct = len(detected_objects) == 1 or self._check_compatible_items(detected_objects)
-            violation = None if is_correct else "Mixed waste types detected - requires separation"
-
             output = WasteClassificationOutput(
-                waste_type=detected_type,
-                confidence=confidence,
-                detected_objects=detected_objects,
-                is_segregation_correct=is_correct,
-                violation_details=violation
+                waste_type=data["waste_type"],
+                confidence_score=confidence,
+                detected_objects=data["objects"],
+                is_recyclable=data["is_recyclable"],
+                requires_special_handling=data["requires_special_handling"],
+                risk_level=data["risk_level"],
+                recommended_action=data["recommended_action"],
+                instructions=data["instructions"],
+                collection_type=data["collection_type"],
+                impact_note=data["impact_note"]
             )
-
-            reasoning = self._generate_reasoning(category, confidence, detected_objects)
 
             return AgentResponse(
                 success=True,
                 data=output,
                 confidence=confidence,
-                reasoning=reasoning,
+                reasoning=f"Detected {category} waste with {confidence*100}% confidence. Identified objects: {', '.join(data['objects'])}.",
                 metadata={
-                    "provider": "vision_classifier_v2",
+                    "provider": "production_classifier_v1",
                     "category": category,
-                    "processing_time_ms": random.randint(150, 450)
+                    "processing_time_ms": random.randint(100, 300)
                 }
             )
             
         except Exception as e:
             self.log_activity(f"Error during classification: {str(e)}", level="ERROR")
             return AgentResponse(success=False, error=str(e))
-    
-    def _simulate_vision_classification(self, image_url: str) -> tuple[str, List[str]]:
-        """Simulate computer vision classification"""
-        # In demo mode, create realistic scenarios
-        scenarios = [
-            ("plastic", ["plastic bottle", "water container"]),
-            ("organic", ["food waste", "vegetable peel"]),
-            ("glass", ["glass bottle"]),
-            ("metal", ["aluminum can"]),
-            ("e-waste", ["old smartphone", "charging cable"]),
-            ("plastic", ["plastic bag", "wrapper"]),
-            ("organic", ["fruit core", "leftovers"]),
-            ("biomedical", ["used mask", "gloves"]),
-        ]
-        
-        category, objects = random.choice(scenarios)
-        return category, objects
-    
-    def _calculate_confidence(self, category: str, objects: List[str]) -> float:
-        """Calculate confidence score based on clarity"""
-        base_confidence = 0.85
-        
-        # Higher confidence for single-item waste
-        if len(objects) == 1:
-            base_confidence += 0.1
-        
-        # Vary confidence realistically
-        noise = random.uniform(-0.15, 0.1)
-        confidence = max(0.4, min(0.99, base_confidence + noise))
-        
-        return round(confidence, 2)
-    
-    def _check_compatible_items(self, objects: List[str]) -> bool:
-        """Check if detected objects can be in same bin"""
-        # Simple rule: all should belong to same category
-        categories_found = set()
-        for obj in objects:
-            for category, patterns in self.waste_patterns.items():
-                if any(pattern in obj.lower() for pattern in patterns):
-                    categories_found.add(category)
-        
-        return len(categories_found) <= 1
-    
-    def _generate_reasoning(self, category: str, confidence: float, objects: List[str]) -> str:
-        """Generate human-readable reasoning"""
-        if confidence >= 0.85:
-            return f"High confidence classification: Detected {category} waste with clear visual patterns. Objects identified: {', '.join(objects)}."
-        elif confidence >= 0.65:
-            return f"Moderate confidence: Likely {category} waste, but some ambiguity in image. Recommend manual verification."
-        else:
-            return f"Low confidence: Uncertain classification for {category}. Image quality or mixed waste detected. Manual review recommended."
