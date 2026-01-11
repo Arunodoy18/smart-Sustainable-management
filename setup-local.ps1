@@ -104,5 +104,4 @@ Write-Host "Or use the start script:" -ForegroundColor Cyan
 Write-Host "  .\start-local.ps1" -ForegroundColor Yellow
 Write-Host ""
 
-Write-Host "Press any key to continue..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Write-Host "Setup complete!" -ForegroundColor Green
