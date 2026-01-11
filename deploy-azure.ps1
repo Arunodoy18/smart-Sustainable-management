@@ -299,6 +299,6 @@ Name: $ResourceGroup
 Location: $Location
 "@
 
-Set-Content -Path "AZURE_DEPLOYMENT_INFO.txt" -Value $deploymentInfo
-Write-Host "✓ Deployment info saved to AZURE_DEPLOYMENT_INFO.txt" -ForegroundColor Green
-Write-Host ""
+Set-Content -Path 'AZURE_DEPLOYMENT_INFO.txt' -Value $deploymentInfo
+Write-Host '✓ Deployment info saved to AZURE_DEPLOYMENT_INFO.txt' -ForegroundColor Green
+Write-Host ''
