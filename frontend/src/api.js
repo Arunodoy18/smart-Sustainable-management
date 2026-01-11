@@ -1,84 +1,72 @@
 import axios from 'axios';
-import { supabase } from './supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
-// Create axios instance with auth interceptor
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
-  }
-  return config;
-});
-
 export const wasteAPI = {
-  // Classify and record waste (using multipart/form-data)
-  classifyWaste: async (file, location = null) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (location) {
-      formData.append('location', JSON.stringify(location));
-    }
-    
-    const response = await api.post('/waste/classify', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  // Classify and record waste
+  classifyWaste: async (userId, imageUrl, location = null) => {
+    const response = await axios.post(`${API_BASE_URL}/waste/classify`, {
+      user_id: userId,
+      image_url: imageUrl,
+      location: location
     });
     return response.data;
   },
 
   // Get user's waste entries
-  getHistory: async (limit = 50) => {
-    const response = await api.get(`/waste/history?limit=${limit}`);
+  getUserEntries: async (userId, limit = 50) => {
+    const response = await axios.get(`${API_BASE_URL}/waste/entries/${userId}?limit=${limit}`);
     return response.data;
   },
 
-  // Get pending pickups (Driver only)
-  getPendingPickups: async () => {
-    const response = await api.get('/waste/pending');
+  // Get specific entry details
+  getEntryDetail: async (entryId) => {
+    const response = await axios.get(`${API_BASE_URL}/waste/entry/${entryId}`);
     return response.data;
   },
 
-  // Accept a pickup (Driver)
-  acceptPickup: async (entryId) => {
-    const response = await api.post(`/waste/${entryId}/accept`);
-    return response.data;
-  },
-
-  // Confirm collection with proof image (Driver)
-  collectWaste: async (entryId, file, location = null) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (location) {
-      formData.append('location', JSON.stringify(location));
-    }
-    
-    const response = await api.post(`/waste/${entryId}/collect`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+  // Mark waste as collected (driver function)
+  markCollected: async (entryId, collectorId, collectionImageUrl = null) => {
+    const response = await axios.post(`${API_BASE_URL}/waste/collect`, {
+      entry_id: entryId,
+      collector_id: collectorId,
+      collection_image_url: collectionImageUrl
     });
     return response.data;
   },
 
   // Get analytics
-  getAnalytics: async () => {
-    const response = await api.get('/waste/analytics');
+  getAnalytics: async (userId = null) => {
+    const url = userId 
+      ? `${API_BASE_URL}/waste/analytics?user_id=${userId}`
+      : `${API_BASE_URL}/waste/analytics`;
+    const response = await axios.get(url);
     return response.data;
   },
+
+  // Health check
+  healthCheck: async () => {
+    const response = await axios.get(`${API_BASE_URL}/waste/health`);
+    return response.data;
+  }
 };
 
-// WebSocket connection for real-time updates
-export const getRealtimeSocket = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) return null;
-  
-  const wsUrl = API_BASE_URL.replace('http', 'ws') + `/waste/ws/${session.access_token}`;
-  return new WebSocket(wsUrl);
+// Upload image to storage (mock - in production use S3, Azure Blob, etc.)
+export const uploadImage = async (file) => {
+  // For demo purposes, create a local URL
+  // In production, upload to cloud storage
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // Simulate upload delay
+      setTimeout(() => {
+        resolve({
+          url: reader.result, // Base64 data URL
+          filename: file.name,
+          size: file.size
+        });
+      }, 1000);
+    };
+    reader.readAsDataURL(file);
+  });
 };
