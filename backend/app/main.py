@@ -15,7 +15,8 @@ async def lifespan(app: FastAPI):
     print("\n" + "="*50)
     print("🚀 SMART WASTE MANAGEMENT AI - BACKEND STARTING")
     print(f"📍 API Docs: http://localhost:8000/docs")
-    print(f"🔧 Database: {settings.SQLALCHEMY_DATABASE_URI}")
+    print(f"🔧 Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else settings.database_url}")
+    print(f"🌐 Environment: {os.getenv('ENVIRONMENT', 'development')}")
     print("="*50 + "\n")
     
     from app.db.init_db import init_db
