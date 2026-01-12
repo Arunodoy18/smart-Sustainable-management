@@ -98,136 +98,190 @@ function HomePage() {
     );
   };
   
-  return (
-    <div className="space-y-6">
-      <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
-        <h2 className="text-2xl font-bold text-white mb-4">Upload Waste Image</h2>
-        <p className="text-gray-400 mb-6">
-          Take a photo or upload an image of your waste for AI-powered classification and recommendations
-        </p>
-        
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
-          <button
-            onClick={() => fileInputRef.current.click()}
-            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-600 rounded-lg hover:border-green-500 transition-colors bg-gray-750"
-          >
-            <span className="text-4xl mb-2">📁</span>
-            <span className="text-lg font-medium text-white">Upload Image</span>
-            <span className="text-sm text-gray-500 mt-1">Click to select file</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="card-premium">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-2 bg-emerald-500/20 rounded-lg">
+              <span className="text-2xl">♻️</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Upload Waste Image</h2>
+          </div>
+          <p className="text-gray-400 mb-8 leading-relaxed">
+            Take a photo or upload an image of your waste for AI-powered classification and recommendations
+          </p>
           
-          <button
-            onClick={() => setShowCamera(!showCamera)}
-            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-600 rounded-lg hover:border-green-500 transition-colors bg-gray-750"
-          >
-            <span className="text-4xl mb-2">📸</span>
-            <span className="text-lg font-medium text-white">Use Camera</span>
-            <span className="text-sm text-gray-500 mt-1">Take a photo</span>
-          </button>
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            <button
+              onClick={() => fileInputRef.current.click()}
+              className="group flex flex-col items-center justify-center p-10 border-2 border-dashed border-gray-700 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-300"
+            >
+              <div className="w-16 h-16 bg-gray-900/50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <span className="text-3xl">📁</span>
+              </div>
+              <span className="text-lg font-semibold text-white">Upload Image</span>
+              <span className="text-sm text-gray-500 mt-1">Click to select file</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <button
+              onClick={() => setShowCamera(!showCamera)}
+              className="group flex flex-col items-center justify-center p-10 border-2 border-dashed border-gray-700 rounded-2xl hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-300"
+            >
+              <div className="w-16 h-16 bg-gray-900/50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <span className="text-3xl">📸</span>
+              </div>
+              <span className="text-lg font-semibold text-white">Use Camera</span>
+              <span className="text-sm text-gray-500 mt-1">Take a photo</span>
+            </button>
+          </div>
+          
+          {showCamera && (
+            <div className="mb-8 overflow-hidden rounded-2xl border border-gray-700 bg-black">
+              <Webcam
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                className="w-full"
+              />
+              <div className="p-4 bg-gray-900/80 backdrop-blur-sm">
+                <button
+                  onClick={capturePhoto}
+                  className="btn-primary w-full"
+                >
+                  Capture Photo
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {previewUrl && (
+            <div className="mb-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Preview:</h3>
+                <button 
+                  onClick={() => { setPreviewUrl(null); setSelectedFile(null); }}
+                  className="text-sm text-gray-500 hover:text-rose-400 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="relative group overflow-hidden rounded-2xl border border-gray-700 shadow-2xl">
+                <img src={previewUrl} alt="Preview" className="w-full max-h-[500px] object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/50 to-transparent" />
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="btn-primary w-full py-4 text-lg"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin h-6 w-6 mr-3 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Analyzing Waste...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center">
+                    <span className="mr-2">🔍</span> Classify Waste
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+          
+          {error && (
+            <div className="p-4 bg-rose-900/20 border border-rose-800/50 rounded-xl animate-shake">
+              <p className="text-rose-400 font-medium flex items-center">
+                <span className="mr-2">⚠️</span> {error}
+              </p>
+            </div>
+          )}
         </div>
         
-        {showCamera && (
-          <div className="mb-6">
-            <Webcam
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              className="w-full rounded-lg"
-            />
-            <button
-              onClick={capturePhoto}
-              className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-            >
-              Capture Photo
-            </button>
-          </div>
-        )}
-        
-        {previewUrl && (
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2 text-white">Preview:</h3>
-            <img src={previewUrl} alt="Preview" className="w-full max-h-96 object-contain rounded-lg border border-gray-700" />
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Analyzing...
-                </span>
-              ) : 'Classify Waste'}
-            </button>
-          </div>
-        )}
-        
-        {error && (
-          <div className="p-4 bg-red-900/50 border border-red-800 rounded-lg">
-            <p className="text-red-200 font-medium">❌ {error}</p>
+        {result && (
+          <div className="card-premium space-y-8 animate-in zoom-in-95 duration-500">
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-extrabold text-white tracking-tight">Results</h2>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    result.confidence_score >= 0.8 ? 'confidence-high' : 
+                    result.confidence_score >= 0.5 ? 'confidence-medium' : 'confidence-low'
+                  }`}>
+                    {result.confidence_score >= 0.8 ? 'High' : 
+                     result.confidence_score >= 0.5 ? 'Medium' : 'Low'} Confidence
+                  </span>
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider risk-${result.risk_level?.toLowerCase() || 'medium'}`}>
+                    {result.risk_level || 'Medium'} Risk
+                  </span>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-5 bg-gray-900/60 rounded-2xl border border-white/5 shadow-inner">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Waste Type</p>
+                  <p className="text-2xl font-black text-emerald-400 capitalize">{result.waste_type}</p>
+                </div>
+                <div className="p-5 bg-gray-900/60 rounded-2xl border border-white/5 shadow-inner">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Collection</p>
+                  <p className="text-xl font-bold text-white">{result.collection_type}</p>
+                </div>
+                <div className="p-5 bg-gray-900/60 rounded-2xl border border-white/5 shadow-inner flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Recyclable</p>
+                    <p className={`text-xl font-bold ${result.is_recyclable ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {result.is_recyclable ? 'Yes' : 'No'}
+                    </p>
+                  </div>
+                  {result.is_recyclable && <span className="text-3xl">♻️</span>}
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-2xl bg-emerald-950/20 border border-emerald-800/30 p-8 shadow-lg">
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold text-emerald-300 mb-4 flex items-center">
+                  <span className="p-2 bg-emerald-500/20 rounded-lg mr-3">✅</span>
+                  Action: {result.recommended_action}
+                </h3>
+                
+                <div className="space-y-4">
+                  <h4 className="text-sm font-bold text-emerald-500/80 uppercase tracking-widest">Steps to take:</h4>
+                  <ul className="grid gap-3">
+                    {result.instructions.map((instruction, idx) => (
+                      <li key={idx} className="flex items-start text-emerald-100/90 leading-relaxed">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center font-bold mr-3 mt-0.5 border border-emerald-500/30">
+                          {idx + 1}
+                        </span>
+                        {instruction}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -mr-16 -mt-16" />
+            </div>
+            
+            <div className="p-6 bg-blue-950/20 border border-blue-800/30 rounded-2xl flex items-start space-x-4">
+              <span className="text-2xl mt-1">🌍</span>
+              <div>
+                <h4 className="font-bold text-blue-300 mb-1 tracking-tight">Environmental Impact</h4>
+                <p className="text-blue-100/80 leading-relaxed text-sm">{result.impact_note}</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
-      
-      {result && (
-        <div className="bg-gray-800 rounded-xl shadow-lg p-6 space-y-6 border border-gray-700">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-4">Classification Results</h2>
-            
-            <div className="flex flex-wrap gap-3 mb-4">
-              {getConfidenceBadge(result.confidence_score)}
-              {getRiskBadge(result.risk_level)}
-              {result.is_recyclable && (
-                <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-900/50 text-green-300 border border-green-800">
-                  ♻️ Recyclable
-                </span>
-              )}
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div className="p-4 bg-gray-700 rounded-lg">
-                <p className="text-sm text-gray-400">Waste Type</p>
-                <p className="text-xl font-bold text-white capitalize">{result.waste_type}</p>
-              </div>
-              <div className="p-4 bg-gray-700 rounded-lg">
-                <p className="text-sm text-gray-400">Collection Type</p>
-                <p className="text-lg font-semibold text-white">{result.collection_type}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-xl font-bold text-white mb-3">
-              ✅ Recommended Action: {result.recommended_action}
-            </h3>
-            
-            <div className="bg-green-900/30 border border-green-800 rounded-lg p-4">
-              <h4 className="font-semibold text-green-300 mb-2">Instructions:</h4>
-              <ol className="list-decimal list-inside space-y-2">
-                {result.instructions.map((instruction, idx) => (
-                  <li key={idx} className="text-green-200">{instruction}</li>
-                ))}
-              </ol>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-blue-900/30 border border-blue-800 rounded-lg">
-            <h4 className="font-semibold text-blue-300 mb-2">🌍 Environmental Impact:</h4>
-            <p className="text-blue-200">{result.impact_note}</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    );
+
 }
 
 export default HomePage;

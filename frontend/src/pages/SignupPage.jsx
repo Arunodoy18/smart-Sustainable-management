@@ -32,80 +32,103 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
-      <div className="max-w-md w-full space-y-8 bg-gray-800 p-10 rounded-2xl shadow-2xl border border-gray-700">
+    <div className="min-h-[calc(100vh-16rem)] flex items-center justify-center px-4 animate-in fade-in duration-1000">
+      <div className="max-w-md w-full card-premium p-10">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+          <div className="flex justify-center mb-4">
+            <div className="p-4 bg-emerald-500/20 rounded-2xl shadow-inner">
+              <span className="text-4xl">🌱</span>
+            </div>
+          </div>
+          <h2 className="text-center text-3xl font-extrabold text-white tracking-tight">
             Join Smart Waste AI
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-400">
-            Create your account to start recycling
+          <p className="mt-3 text-center text-sm text-gray-400">
+            Create your account to start recycling better
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-          <div className="rounded-md shadow-sm space-y-4">
+        
+        <form className="mt-8 space-y-5" onSubmit={handleSignup}>
+          <div className="space-y-4">
             <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Full Name</label>
               <input
                 type="text"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                placeholder="Full Name"
+                className="input-premium"
+                placeholder="John Doe"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
               <input
                 type="email"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                placeholder="Email address"
+                className="input-premium"
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Password</label>
               <input
                 type="password"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-600 placeholder-gray-500 text-white bg-gray-700 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                placeholder="Password"
+                className="input-premium"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">I am a:</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">I am a:</label>
               <select
-                className="block w-full px-3 py-3 border border-gray-600 text-white bg-gray-700 rounded-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                className="input-premium appearance-none cursor-pointer"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
-                <option value="user">Citizen (User)</option>
-                <option value="driver">Collection Staff (Driver)</option>
+                <option value="user" className="bg-gray-800">Citizen (User)</option>
+                <option value="driver" className="bg-gray-800">Collection Staff (Driver)</option>
               </select>
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
+          {error && (
+            <div className="p-3 bg-rose-900/20 border border-rose-800/50 rounded-xl animate-shake">
+              <p className="text-rose-400 text-xs text-center font-medium">{error}</p>
+            </div>
+          )}
 
           <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all"
+              className="btn-primary w-full py-4 text-base tracking-wide"
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : 'Sign up'}
             </button>
           </div>
         </form>
         
-        <p className="mt-8 text-center text-sm text-gray-400">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-green-500 hover:text-green-400">
-            Sign in
-          </Link>
-        </p>
+        <div className="mt-8 pt-8 border-t border-gray-700/50 text-center">
+          <p className="text-sm text-gray-400">
+            Already have an account?{' '}
+            <Link to="/login" className="font-bold text-emerald-500 hover:text-emerald-400 transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -54,148 +54,173 @@ function HistoryPage() {
   }
   
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
-        <h2 className="text-2xl font-bold text-white mb-4">Waste Entry History</h2>
-        <p className="text-gray-400 mb-6">
-          Track all your waste submissions and collection status
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="card-premium">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-3xl font-extrabold text-white tracking-tight">Waste History</h2>
+            <p className="text-gray-400 mt-2 leading-relaxed">
+              Track your waste submissions and collection journey
+            </p>
+          </div>
+          <button 
+            onClick={loadEntries}
+            className="p-3 bg-gray-900/50 hover:bg-emerald-500/10 text-emerald-400 rounded-xl transition-all duration-300 border border-emerald-500/20 flex items-center justify-center"
+          >
+            <span className="mr-2">🔄</span> Refresh
+          </button>
+        </div>
         
         {error && (
-          <div className="p-4 bg-red-900/50 border border-red-800 rounded-lg mb-4">
-            <p className="text-red-200">❌ {error}</p>
+          <div className="p-4 bg-rose-900/20 border border-rose-800/50 rounded-xl mb-6 animate-shake">
+            <p className="text-rose-400 font-medium flex items-center">
+              <span className="mr-2">⚠️</span> {error}
+            </p>
           </div>
         )}
         
         {entries.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No waste entries yet</p>
-            <p className="text-gray-400 mt-2">Upload your first waste image to get started!</p>
+          <div className="text-center py-20 bg-gray-900/30 rounded-2xl border border-dashed border-gray-700">
+            <div className="text-6xl mb-4 opacity-20">📋</div>
+            <p className="text-gray-400 text-xl font-medium italic">Your history is looking clean!</p>
+            <p className="text-gray-500 mt-2">Upload your first waste entry to start tracking.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead className="bg-gray-900/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Waste Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Confidence</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Risk</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-transparent divide-y divide-gray-700">
-                {entries.map(entry => (
-                  <tr key={entry.id} className="hover:bg-gray-700/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm font-medium text-white capitalize">{entry.waste_type}</span>
-                      {entry.is_recyclable && <span className="ml-2">♻️</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                        entry.confidence_score >= 0.8 ? 'bg-green-900/30 text-green-300' :
-                        entry.confidence_score >= 0.5 ? 'bg-yellow-900/30 text-yellow-300' :
-                        'bg-red-900/30 text-red-300'
-                      }`}>
-                        {(entry.confidence_score * 100).toFixed(0)}%
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full font-semibold capitalize ${
-                        entry.risk_level === 'low' ? 'bg-blue-900/30 text-blue-300' :
-                        entry.risk_level === 'medium' ? 'bg-yellow-900/30 text-yellow-300' :
-                        'bg-red-900/30 text-red-300'
-                      }`}>
-                        {entry.risk_level}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(entry.status)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {new Date(entry.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => setSelectedEntry(entry)}
-                        className="text-green-500 hover:text-green-400 font-medium text-sm"
-                      >
-                        View Details
-                      </button>
-                    </td>
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-gray-950/20 shadow-inner">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-white/5">
+                <thead className="bg-gray-900/80">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Waste Type</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Confidence</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Risk Level</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Status</th>
+                    <th className="px-6 py-4 text-left text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Date</th>
+                    <th className="px-6 py-4 text-right text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {entries.map(entry => (
+                    <tr key={entry.id} className="group hover:bg-white/[0.02] transition-colors duration-300">
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-base font-bold text-white capitalize">{entry.waste_type}</span>
+                          {entry.is_recyclable && (
+                            <span className="ml-2.5 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-black rounded-md uppercase tracking-tighter">♻️ Recyclable</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs rounded-lg font-bold tracking-tight ${
+                          entry.confidence_score >= 0.8 ? 'confidence-high' :
+                          entry.confidence_score >= 0.5 ? 'confidence-medium' :
+                          'confidence-low'
+                        }`}>
+                          {(entry.confidence_score * 100).toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs rounded-lg font-bold uppercase tracking-widest risk-${entry.risk_level?.toLowerCase() || 'medium'}`}>
+                          {entry.risk_level || 'Medium'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">{getStatusBadge(entry.status)}</td>
+                      <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-500">
+                        {new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap text-right">
+                        <button
+                          onClick={() => setSelectedEntry(entry)}
+                          className="px-4 py-2 text-xs font-black text-emerald-500 uppercase tracking-widest hover:bg-emerald-500/10 rounded-lg transition-all"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
       
       {selectedEntry && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-700">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-2xl font-bold text-white">Entry Details</h3>
-                <button
-                  onClick={() => setSelectedEntry(null)}
-                  className="text-gray-400 hover:text-white text-2xl font-bold"
-                >
-                  ×
-                </button>
+        <div className="fixed inset-0 bg-gray-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-[60] animate-in fade-in duration-300">
+          <div className="max-w-4xl w-full card-premium p-0 overflow-hidden shadow-[0_0_100px_rgba(16,185,129,0.1)]">
+            <div className="relative h-64 md:h-80 overflow-hidden">
+              <img 
+                src={getImageUrl(selectedEntry.image_url)} 
+                alt="Waste" 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-800 to-transparent" />
+              <button
+                onClick={() => setSelectedEntry(null)}
+                className="absolute top-4 right-4 w-10 h-10 bg-black/50 hover:bg-black/80 backdrop-blur-md rounded-full flex items-center justify-center text-white text-xl transition-all"
+              >
+                ×
+              </button>
+              <div className="absolute bottom-6 left-8">
+                <span className="px-3 py-1 bg-emerald-600 text-white text-xs font-black uppercase tracking-widest rounded-md mb-2 inline-block">Entry Details</span>
+                <h3 className="text-3xl font-black text-white capitalize tracking-tight">
+                  {selectedEntry.waste_type}
+                </h3>
+              </div>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-gray-900/50 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Confidence</p>
+                  <p className="text-xl font-bold text-white">{(selectedEntry.confidence_score * 100).toFixed(0)}%</p>
+                </div>
+                <div className="p-4 bg-gray-900/50 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Risk Level</p>
+                  <p className="text-xl font-bold text-white capitalize">{selectedEntry.risk_level}</p>
+                </div>
+                <div className="p-4 bg-gray-900/50 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Recyclable</p>
+                  <p className="text-xl font-bold text-white">{selectedEntry.is_recyclable ? 'Yes' : 'No'}</p>
+                </div>
+                <div className="p-4 bg-gray-900/50 rounded-2xl border border-white/5">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Collection</p>
+                  <p className="text-xl font-bold text-white">{selectedEntry.collection_type}</p>
+                </div>
               </div>
               
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-400">Waste Type</p>
-                        <p className="font-semibold text-white capitalize">{selectedEntry.waste_type}</p>
-                      </div>
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-400">Confidence</p>
-                        <p className="font-semibold text-white">{(selectedEntry.confidence_score * 100).toFixed(0)}%</p>
-                      </div>
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-400">Risk Level</p>
-                        <p className="font-semibold text-white capitalize">{selectedEntry.risk_level}</p>
-                      </div>
-                      <div className="p-3 bg-gray-700 rounded-lg">
-                        <p className="text-xs text-gray-400">Collection</p>
-                        <p className="font-semibold text-white">{selectedEntry.collection_type}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 bg-green-900/30 border border-green-800 rounded-lg">
-                      <h4 className="font-semibold text-green-300 mb-2">Recommended Action:</h4>
-                      <p className="text-green-200">{selectedEntry.recommended_action}</p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <img 
-                      src={getImageUrl(selectedEntry.image_url)} 
-                      alt="Waste" 
-                      className="w-full rounded-lg border border-gray-700 shadow-lg"
-                    />
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-black text-emerald-500 uppercase tracking-[0.2em]">Action Plan</h4>
+                  <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl">
+                    <p className="text-emerald-100 font-medium leading-relaxed">{selectedEntry.recommended_action}</p>
                   </div>
                 </div>
                 
-                <div className="p-4 bg-blue-900/30 border border-blue-800 rounded-lg">
-                  <h4 className="font-semibold text-blue-300 mb-2">Instructions:</h4>
-                  <ol className="list-decimal list-inside space-y-1">
+                <div className="space-y-4">
+                  <h4 className="text-sm font-black text-blue-500 uppercase tracking-[0.2em]">Instructions</h4>
+                  <ul className="space-y-3">
                     {selectedEntry.instructions?.map((instruction, idx) => (
-                      <li key={idx} className="text-blue-200">{instruction}</li>
+                      <li key={idx} className="flex items-start text-sm text-gray-400 leading-relaxed">
+                        <span className="w-5 h-5 flex-shrink-0 bg-blue-500/20 text-blue-400 text-[10px] font-black rounded flex items-center justify-center mr-3 mt-0.5 italic">{idx + 1}</span>
+                        {instruction}
+                      </li>
                     ))}
-                  </ol>
+                  </ul>
                 </div>
-                
-                <div className="p-4 bg-gray-700 rounded-lg text-sm text-gray-300">
-                  <p>Created: {new Date(selectedEntry.created_at).toLocaleString()}</p>
-                  {selectedEntry.collected_at && (
-                    <p className="mt-1">Collected: {new Date(selectedEntry.collected_at).toLocaleString()}</p>
-                  )}
+              </div>
+              
+              <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                <div className="flex items-center text-xs text-gray-500 font-bold uppercase tracking-widest">
+                  <span className="mr-4">📅 {new Date(selectedEntry.created_at).toLocaleString()}</span>
+                  <span>📍 {selectedEntry.location?.address || 'Local Region'}</span>
                 </div>
+                <button
+                  onClick={() => setSelectedEntry(null)}
+                  className="btn-primary py-2 px-8"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
