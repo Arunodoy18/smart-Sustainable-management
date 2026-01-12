@@ -12,12 +12,19 @@ setup_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
-    print("\n" + "="*50)
-    print("🚀 SMART WASTE MANAGEMENT AI - BACKEND STARTING")
-    print(f"📍 API Docs: http://localhost:8000/docs")
-    print(f"🔧 Database: {settings.database_url.split('@')[-1] if '@' in settings.database_url else settings.database_url}")
-    print(f"🌐 Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    print("="*50 + "\n")
+    banner = """
+    ┌────────────────────────────────────────────────────────┐
+    │  ♻️  SMART WASTE MANAGEMENT AI - BACKEND SYSTEM       │
+    │  🚀 Status: RUNNING (Local Development)               │
+    └────────────────────────────────────────────────────────┘
+    """
+    print("\n" + banner)
+    print(f"🔗 API Documentation: http://localhost:8000/docs")
+    print(f"📊 Health Check:      http://localhost:8000/api/v1/auth/me")
+    print(f"📂 Storage Path:      {os.path.abspath(settings.STORAGE_PATH)}")
+    print(f"🔧 Database URL:      {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite/Local'}")
+    print(f"🌐 Environment:       {os.getenv('ENVIRONMENT', 'development')}")
+    print("\n" + "—" * 60 + "\n")
     
     from app.db.init_db import init_db
     init_db()

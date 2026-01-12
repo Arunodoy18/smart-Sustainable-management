@@ -1,3 +1,8 @@
+/**
+ * 🧊 HACKATHON MVP FROZEN CONFIG
+ * DO NOT MODIFY FOR PRODUCTION DEPLOYMENT.
+ * LOCAL CHANGES ONLY.
+ */
 import axios from 'axios';
 
 const getBaseUrl = () => {

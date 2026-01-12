@@ -1,3 +1,8 @@
+"""
+🧊 HACKATHON MVP FROZEN CONFIG
+DO NOT MODIFY FOR PRODUCTION DEPLOYMENT.
+LOCAL CHANGES ONLY.
+"""
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

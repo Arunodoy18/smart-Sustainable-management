@@ -1,3 +1,5 @@
+# 🧊 HACKATHON MVP FREEZE: DO NOT MODIFY CORE SERVICES
+# This configuration is part of the submitted MVP.
 version: '3.8'
 
 services:
