@@ -2,7 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.waste import WasteEntry
 from app.agents.waste_classifier_agent import WasteClassificationAgent
 from app.schemas.waste import WasteClassificationInput
-from app.core.supabase import supabase
+import os
+from app.core.config import settings
 from app.core.coordinator import coordinator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -15,16 +16,19 @@ class WasteService:
         self.classifier_agent = WasteClassificationAgent()
 
     async def upload_image(self, file_content: bytes, filename: str) -> str:
-        """Upload image to Supabase Storage and return public URL"""
-        path = f"uploads/{uuid.uuid4()}_{filename}"
-        res = supabase.storage.from_("waste-images").upload(
-            path, 
-            file_content,
-            {"content-type": "image/jpeg"}
-        )
-        # Get public URL
-        url_res = supabase.storage.from_("waste-images").get_public_url(path)
-        return url_res
+        """Upload image to local storage and return relative URL"""
+        if not os.path.exists(settings.STORAGE_PATH):
+            os.makedirs(settings.STORAGE_PATH)
+        
+        file_ext = os.path.splitext(filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = os.path.join(settings.STORAGE_PATH, unique_filename)
+        
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+        
+        # In a real app, this would be served by a static file handler
+        return f"/storage/{unique_filename}"
 
     async def classify_and_record(
         self, 
@@ -130,19 +134,33 @@ class WasteService:
         entries = self.db.query(WasteEntry).all()
         total = len(entries)
         if total == 0:
-            return {"total": 0}
+            return {
+                "total_waste_entries": 0,
+                "recyclable_count": 0,
+                "collected_count": 0,
+                "pending_count": 0,
+                "recycling_rate": 0,
+                "category_breakdown": {},
+                "average_confidence": 0,
+                "impact_summary": "No data yet."
+            }
             
         recyclable = sum(1 for e in entries if e.is_recyclable)
         collected = sum(1 for e in entries if e.status == "collected")
+        pending = sum(1 for e in entries if e.status == "pending")
+        avg_confidence = sum(e.confidence_score for e in entries) / total
         
         category_dist = {}
         for e in entries:
             category_dist[e.waste_type] = category_dist.get(e.waste_type, 0) + 1
             
         return {
-            "total_entries": total,
+            "total_waste_entries": total,
+            "recyclable_count": recyclable,
+            "collected_count": collected,
+            "pending_count": pending,
             "recycling_rate": round((recyclable / total) * 100, 1),
-            "collection_efficiency": round((collected / total) * 100, 1) if total > 0 else 0,
-            "category_distribution": category_dist,
-            "impact_summary": "Prevented approx. 2.5 tons of CO2 emissions this month."
+            "category_breakdown": category_dist,
+            "average_confidence": round(avg_confidence, 2),
+            "impact_summary": f"Prevented approx. {recyclable * 2.5} kg of CO2 emissions."
         }

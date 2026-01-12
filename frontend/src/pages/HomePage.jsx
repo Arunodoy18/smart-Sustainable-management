@@ -1,9 +1,8 @@
 import { useState, useRef } from 'react';
-import { wasteAPI, uploadImage } from '../api';
+import { wasteAPI } from '../api';
 import Webcam from 'react-webcam';
 
 function HomePage() {
-  const [userId] = useState(1); // Mock user ID - in production, get from auth
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -53,17 +52,13 @@ function HomePage() {
     setResult(null);
     
     try {
-      // Upload image (in production, this would go to S3/Azure Blob)
-      const uploadResult = await uploadImage(selectedFile);
-      
-      // Call classification API
+      // Call classification API (Multipart upload)
       const response = await wasteAPI.classifyWaste(
-        userId,
-        uploadResult.url,
+        selectedFile,
         { lat: 0, lng: 0 } // Mock location
       );
       
-      setResult(response.data);
+      setResult(response);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to classify waste. Please try again.');
     } finally {
@@ -72,22 +67,24 @@ function HomePage() {
   };
   
   const getConfidenceBadge = (confidence) => {
-    if (confidence >= 0.8) {
+    const score = confidence || 0;
+    if (score >= 0.8) {
       return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-        High Confidence ({(confidence * 100).toFixed(0)}%)
+        High Confidence ({(score * 100).toFixed(0)}%)
       </span>;
-    } else if (confidence >= 0.5) {
+    } else if (score >= 0.5) {
       return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-        Medium Confidence ({(confidence * 100).toFixed(0)}%)
+        Medium Confidence ({(score * 100).toFixed(0)}%)
       </span>;
     } else {
       return <span className="px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
-        Low Confidence ({(confidence * 100).toFixed(0)}%)
+        Low Confidence ({(score * 100).toFixed(0)}%)
       </span>;
     }
   };
   
   const getRiskBadge = (riskLevel) => {
+    const level = riskLevel?.toLowerCase() || 'medium';
     const colors = {
       low: 'bg-blue-100 text-blue-800',
       medium: 'bg-yellow-100 text-yellow-800',
@@ -95,27 +92,27 @@ function HomePage() {
       critical: 'bg-red-100 text-red-800'
     };
     return (
-      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${colors[riskLevel] || colors.medium}`}>
-        {riskLevel.toUpperCase()} RISK
+      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${colors[level] || colors.medium}`}>
+        {level.toUpperCase()} RISK
       </span>
     );
   };
   
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Upload Waste Image</h2>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
+        <h2 className="text-2xl font-bold text-white mb-4">Upload Waste Image</h2>
+        <p className="text-gray-400 mb-6">
           Take a photo or upload an image of your waste for AI-powered classification and recommendations
         </p>
         
         <div className="grid md:grid-cols-2 gap-6 mb-6">
           <button
             onClick={() => fileInputRef.current.click()}
-            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors"
+            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-600 rounded-lg hover:border-green-500 transition-colors bg-gray-750"
           >
             <span className="text-4xl mb-2">📁</span>
-            <span className="text-lg font-medium">Upload Image</span>
+            <span className="text-lg font-medium text-white">Upload Image</span>
             <span className="text-sm text-gray-500 mt-1">Click to select file</span>
           </button>
           <input
@@ -128,10 +125,10 @@ function HomePage() {
           
           <button
             onClick={() => setShowCamera(!showCamera)}
-            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition-colors"
+            className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-600 rounded-lg hover:border-green-500 transition-colors bg-gray-750"
           >
             <span className="text-4xl mb-2">📸</span>
-            <span className="text-lg font-medium">Use Camera</span>
+            <span className="text-lg font-medium text-white">Use Camera</span>
             <span className="text-sm text-gray-500 mt-1">Take a photo</span>
           </button>
         </div>
@@ -154,12 +151,12 @@ function HomePage() {
         
         {previewUrl && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-2">Preview:</h3>
-            <img src={previewUrl} alt="Preview" className="w-full max-h-96 object-contain rounded-lg border border-gray-200" />
+            <h3 className="text-lg font-semibold mb-2 text-white">Preview:</h3>
+            <img src={previewUrl} alt="Preview" className="w-full max-h-96 object-contain rounded-lg border border-gray-700" />
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -175,63 +172,57 @@ function HomePage() {
         )}
         
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800 font-medium">❌ {error}</p>
+          <div className="p-4 bg-red-900/50 border border-red-800 rounded-lg">
+            <p className="text-red-200 font-medium">❌ {error}</p>
           </div>
         )}
       </div>
       
       {result && (
-        <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+        <div className="bg-gray-800 rounded-xl shadow-lg p-6 space-y-6 border border-gray-700">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Classification Results</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Classification Results</h2>
             
             <div className="flex flex-wrap gap-3 mb-4">
-              {getConfidenceBadge(result.classification.confidence)}
-              {getRiskBadge(result.waste_entry.risk_level)}
-              {result.waste_entry.is_recyclable && (
-                <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+              {getConfidenceBadge(result.confidence_score)}
+              {getRiskBadge(result.risk_level)}
+              {result.is_recyclable && (
+                <span className="px-3 py-1 rounded-full text-sm font-semibold bg-green-900/50 text-green-300 border border-green-800">
                   ♻️ Recyclable
                 </span>
               )}
             </div>
             
             <div className="grid md:grid-cols-2 gap-4 mb-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Waste Type</p>
-                <p className="text-xl font-bold text-gray-900 capitalize">{result.waste_entry.waste_type}</p>
+              <div className="p-4 bg-gray-700 rounded-lg">
+                <p className="text-sm text-gray-400">Waste Type</p>
+                <p className="text-xl font-bold text-white capitalize">{result.waste_type}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Collection Type</p>
-                <p className="text-lg font-semibold text-gray-900">{result.recommendation.collection_type}</p>
+              <div className="p-4 bg-gray-700 rounded-lg">
+                <p className="text-sm text-gray-400">Collection Type</p>
+                <p className="text-lg font-semibold text-white">{result.collection_type}</p>
               </div>
-            </div>
-            
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium mb-1">AI Reasoning:</p>
-              <p className="text-blue-900">{result.classification.reasoning}</p>
             </div>
           </div>
           
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-3">
-              ✅ Recommended Action: {result.recommendation.action}
+            <h3 className="text-xl font-bold text-white mb-3">
+              ✅ Recommended Action: {result.recommended_action}
             </h3>
-            <p className="text-lg text-gray-700 mb-3">{result.recommendation.confidence_message}</p>
             
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h4 className="font-semibold text-green-900 mb-2">Instructions:</h4>
+            <div className="bg-green-900/30 border border-green-800 rounded-lg p-4">
+              <h4 className="font-semibold text-green-300 mb-2">Instructions:</h4>
               <ol className="list-decimal list-inside space-y-2">
-                {result.recommendation.instructions.map((instruction, idx) => (
-                  <li key={idx} className="text-green-800">{instruction}</li>
+                {result.instructions.map((instruction, idx) => (
+                  <li key={idx} className="text-green-200">{instruction}</li>
                 ))}
               </ol>
             </div>
           </div>
           
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-semibold text-yellow-900 mb-2">🌍 Environmental Impact:</h4>
-            <p className="text-yellow-800">{result.recommendation.impact}</p>
+          <div className="p-4 bg-blue-900/30 border border-blue-800 rounded-lg">
+            <h4 className="font-semibold text-blue-300 mb-2">🌍 Environmental Impact:</h4>
+            <p className="text-blue-200">{result.impact_note}</p>
           </div>
         </div>
       )}

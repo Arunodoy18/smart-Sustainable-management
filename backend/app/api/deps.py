@@ -4,7 +4,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.core.config import settings
-from app.core.supabase import supabase
+from jose import jwt, JWTError
+from pydantic import ValidationError
+from app.schemas.user import TokenPayload
 from app.models.user import Profile
 
 reusable_oauth2 = OAuth2PasswordBearer(
@@ -23,24 +25,19 @@ async def get_current_user(
     token: str = Depends(reusable_oauth2)
 ) -> Profile:
     try:
-        # Verify token with Supabase
-        res = supabase.auth.get_user(token)
-        if not res.user:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Could not validate credentials",
-            )
-        
-        user_id = res.user.id
-        user = db.query(Profile).filter(Profile.id == user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return user
-    except Exception as e:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (JWTError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Could not validate credentials: {str(e)}",
+            detail="Could not validate credentials",
         )
+    user = db.query(Profile).filter(Profile.id == token_data.sub).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 def get_current_active_user(
     current_user: Profile = Depends(get_current_user),

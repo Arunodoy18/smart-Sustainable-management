@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ export default function SignupPage() {
   const [role, setRole] = useState('user');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -16,21 +17,15 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signUp({
+      await signup({
         email,
         password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: role,
-          },
-        },
+        full_name: fullName,
+        role: role,
       });
-      if (error) throw error;
-      alert('Check your email for the confirmation link!');
-      navigate('/login');
+      navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +87,7 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-xs italic">{error}</p>}
+          {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
           <div>
             <button

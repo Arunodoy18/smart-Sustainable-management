@@ -9,6 +9,7 @@ class Profile(Base):
     id = Column(UUID(as_uuid=True), primary_key=True)
     full_name = Column(String, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
     role = Column(String, default="user") # user, driver, admin
     is_active = Column(Boolean(), default=True)
     

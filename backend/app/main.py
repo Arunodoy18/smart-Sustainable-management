@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+import os
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import waste
+from app.api.routes import waste, auth
 from app.core.config import settings
 from app.core.logger import setup_logger
 from contextlib import asynccontextmanager
@@ -33,6 +34,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount storage for uploaded images
+if not os.path.exists(settings.STORAGE_PATH):
+    os.makedirs(settings.STORAGE_PATH)
+app.mount("/storage", StaticFiles(directory=settings.STORAGE_PATH), name="storage")
+
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["waste"])
 
 @app.get("/")

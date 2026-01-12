@@ -125,15 +125,21 @@ async def websocket_endpoint(
     """
     try:
         # Validate token and get user
-        # Note: In production, use a more secure way to pass tokens to WebSockets
-        from app.core.supabase import supabase
-        res = supabase.auth.get_user(token)
-        if not res.user:
+        from app.core import security
+        from jose import jwt
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        user_id = payload.get("sub")
+        
+        # Get user from DB to check role
+        db = next(deps.get_db())
+        user = db.query(Profile).filter(Profile.id == user_id).first()
+        if not user:
             await websocket.close(code=1008)
             return
             
-        user_id = res.user.id
-        role = res.user.user_metadata.get("role", "user")
+        role = user.role
         
         await coordinator.connect(websocket, user_id, role)
         

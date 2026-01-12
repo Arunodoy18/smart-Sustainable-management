@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,7 +7,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { signInWithGoogle } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -16,11 +15,10 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +59,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-xs italic">{error}</p>}
+          {error && <p className="text-red-500 text-sm text-center font-medium">{error}</p>}
 
           <div>
             <button
@@ -73,27 +71,6 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-800 text-gray-400">Or continue with</span>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <button
-              onClick={signInWithGoogle}
-              className="w-full inline-flex justify-center py-3 px-4 border border-gray-600 rounded-md shadow-sm bg-gray-700 text-sm font-medium text-white hover:bg-gray-600 transition-all"
-            >
-              <img className="h-5 w-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" />
-              Google
-            </button>
-          </div>
-        </div>
         
         <p className="mt-8 text-center text-sm text-gray-400">
           Don't have an account?{' '}
