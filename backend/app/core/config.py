@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "waste_management"
-    SQLALCHEMY_DATABASE_URI: Optional[str] = None
+    SQLALCHEMY_DATABASE_URI: Optional[str] = "sqlite:///./sql_app.db"
     
     # Supabase
     SUPABASE_URL: Optional[str] = None

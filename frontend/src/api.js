@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -15,6 +15,19 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Handle connection errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.response) {
+      // Network error (backend down)
+      console.error('Network Error: Backend might be down', error);
+      throw new Error('Could not connect to the backend server. Please ensure the backend is running on http://localhost:8000');
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authAPI = {
   login: async (email, password) => {

@@ -7,8 +7,10 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import DriverPage from './pages/DriverPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { wasteAPI } from './api';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function Navigation() {
   const location = useLocation();
@@ -102,31 +104,35 @@ function App() {
         <Navigation />
         
         <main className="flex-grow max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/history" element={
-              <ProtectedRoute>
-                <HistoryPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
-              <ProtectedRoute>
-                <AnalyticsPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/driver" element={
-              <ProtectedRoute requiredRole="driver">
-                <DriverPage />
-              </ProtectedRoute>
-            } />
-          </Routes>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/history" element={
+                  <ProtectedRoute>
+                    <HistoryPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/driver" element={
+                  <ProtectedRoute requiredRole="driver">
+                    <DriverPage />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </main>
         
         <footer className="bg-gray-800 border-t border-gray-700 mt-auto">

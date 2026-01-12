@@ -12,11 +12,17 @@ setup_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
+    print("\n" + "="*50)
+    print("🚀 SMART WASTE MANAGEMENT AI - BACKEND STARTING")
+    print(f"📍 API Docs: http://localhost:8000/docs")
+    print(f"🔧 Database: {settings.SQLALCHEMY_DATABASE_URI}")
+    print("="*50 + "\n")
+    
     from app.db.init_db import init_db
     init_db()
     yield
     # Shutdown: cleanup if needed
-    pass
+    print("\n🛑 SHUTTING DOWN BACKEND...\n")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
