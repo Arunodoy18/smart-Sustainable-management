@@ -8,10 +8,11 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY_NAME: waste-management-registry
-  RESOURCE_GROUP: waste-management-rg
-  BACKEND_APP: waste-backend
-  FRONTEND_APP: waste-frontend
+  REGISTRY_NAME: wastemanagementacr
+  RESOURCE_GROUP: hackathon-waste-rg
+  BACKEND_APP: backend
+  FRONTEND_APP: frontend
+  CONTAINER_ENV: hackathon-env
 
 jobs:
   validate:
