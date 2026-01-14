@@ -1,19 +1,76 @@
-# Ignore Python cache files
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyc
+*.pyo
+*.pyd
 
-# Ignore environment files
+# Environment files
 .env
+.env.local
+.env.*.local
 venv/
+env/
+ENV/
 
-# Ignore OS files
+# Logs
+*.log
+logs/
+*.log.*
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Ignore IDE/project files
+# IDE/Editor
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-*
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Storage
+storage/uploads/
+storage/temp/
