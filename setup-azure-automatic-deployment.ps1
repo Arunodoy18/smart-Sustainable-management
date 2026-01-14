@@ -173,7 +173,7 @@ $supabaseUrl = Read-Host "`nEnter Supabase URL (from your Supabase dashboard)"
 $supabaseKey = Read-Host "Enter Supabase Service Role Key (from Supabase dashboard)"
 $supabaseAnonKey = Read-Host "Enter Supabase Anon Key (from Supabase dashboard)"
 $jwtSecret = Read-Host "Enter JWT Secret (or press Enter to generate)"
-$googleMapsKey = Read-Host "Enter Google Maps API Key (optional, press Enter to skip)"
+$googleMapsKey = Read-Host "Enter Google Maps API Key - optional press Enter to skip"
 
 if (!$jwtSecret) {
     $jwtSecret = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
@@ -354,7 +354,6 @@ Write-ColorOutput DarkGray "   git push origin main"
 Write-ColorOutput Cyan "3. Watch GitHub Actions deploy automatically!"
 Write-ColorOutput Cyan "4. Changes will be live in 5-10 minutes at: $frontendUrl"
 
-Write-ColorOutput Yellow "`n💡 Pro Tip: Monitor deployments at:"
-Write-ColorOutput Cyan "   https://github.com/YOUR-USERNAME/YOUR-REPO/actions"
 
-Write-ColorOutput Green "`n✅ Setup complete! Your app is now live and auto-deploying!"
+Write-Host 'Pro Tip: Monitor deployments at https://github.com/YOUR-USERNAME/YOUR-REPO/actions' -ForegroundColor Yellow
+Write-Host 'Setup complete - Your app is now live and auto-deploying' -ForegroundColor Green
