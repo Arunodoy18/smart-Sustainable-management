@@ -1,8 +1,3 @@
-"""
-🧊 HACKATHON MVP FROZEN CONFIG
-DO NOT MODIFY FOR PRODUCTION DEPLOYMENT.
-LOCAL CHANGES ONLY.
-"""
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,12 +16,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "waste_management"
     SQLALCHEMY_DATABASE_URI: Optional[str] = None
-
-    @property
-    def database_url(self) -> str:
-        if self.SQLALCHEMY_DATABASE_URI:
-            return self.SQLALCHEMY_DATABASE_URI
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+    DATABASE_URL: Optional[str] = None
     
     # Supabase
     SUPABASE_URL: Optional[str] = None
@@ -45,5 +35,13 @@ class Settings(BaseSettings):
     STORAGE_PATH: str = "./storage"
 
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra="ignore")
+
+    @property
+    def database_url(self) -> str:
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        if self.SQLALCHEMY_DATABASE_URI:
+            return self.SQLALCHEMY_DATABASE_URI
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
 
 settings = Settings()

@@ -1,5 +1,3 @@
-# 🧊 HACKATHON MVP FREEZE: DO NOT MODIFY CORE SERVICES
-# This configuration is part of the submitted MVP.
 version: '3.8'
 
 services:
@@ -47,14 +45,16 @@ services:
     networks:
       - waste-network
 
-  # React Frontend
+  # Next.js Frontend
   frontend:
     build:
-      context: ./frontend
+      context: ./web
       dockerfile: Dockerfile
     container_name: waste-management-frontend
+    environment:
+      API_URL: http://backend:8000
     ports:
-      - "3000:80"
+      - "3000:3000"
     depends_on:
       - backend
     networks:

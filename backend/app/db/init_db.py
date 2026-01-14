@@ -1,6 +1,6 @@
 from app.db.session import engine
 from app.db.base_class import Base
-from app.models.user import Profile
+from app.models.user import User
 from app.models.waste import WasteEntry
 from app.core.logger import logger
 

@@ -1,9 +1,4 @@
-# 🚀 Production Deployment Guide (FROZEN FOR HACKATHON)
-
-> [!WARNING]
-> **SUBMISSION LOCK**: These deployment configurations are used for the official hackathon submission.
-> Do NOT redeploy to the live endpoints without consulting the Release Engineer.
-> Live URLs are documented in [HACKATHON_FREEZE.md](./HACKATHON_FREEZE.md).
+# 🚀 Production Deployment Guide
 
 ## Table of Contents
 - [Docker Production Setup](#docker-production-setup)

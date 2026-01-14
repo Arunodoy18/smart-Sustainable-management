@@ -19,11 +19,11 @@ Start-Sleep -Seconds 3
 
 # Function to start frontend
 $frontendJob = Start-Job -ScriptBlock {
-    Set-Location "c:\dev\Hackathon\frontend"
+    Set-Location "c:\dev\Hackathon\web"
     npm run dev
 }
 
-Write-Host "✓ Frontend starting on http://localhost:5173" -ForegroundColor Green
+Write-Host "✓ Frontend starting on http://localhost:3000" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan

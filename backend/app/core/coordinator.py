@@ -2,6 +2,7 @@ from typing import Dict, List, Set
 from fastapi import WebSocket
 from loguru import logger
 import json
+import asyncio
 
 class RealtimeCoordinator:
     def __init__(self):
@@ -12,6 +13,21 @@ class RealtimeCoordinator:
             "driver": set(),
             "admin": set()
         }
+        # SSE client queues: user_id -> set of queues
+        self.sse_clients: Dict[str, Set[asyncio.Queue]] = {}
+
+    def add_sse_client(self, user_id: str, queue: asyncio.Queue):
+        if user_id not in self.sse_clients:
+            self.sse_clients[user_id] = set()
+        self.sse_clients[user_id].add(queue)
+        logger.info(f"SSE client connected for user {user_id}")
+
+    def remove_sse_client(self, user_id: str, queue: asyncio.Queue):
+        if user_id in self.sse_clients:
+            self.sse_clients[user_id].discard(queue)
+            if not self.sse_clients[user_id]:
+                del self.sse_clients[user_id]
+        logger.info(f"SSE client disconnected for user {user_id}")
 
     async def connect(self, websocket: WebSocket, user_id: str, role: str):
         await websocket.accept()
@@ -37,6 +53,7 @@ class RealtimeCoordinator:
         logger.info(f"User {user_id} disconnected")
 
     async def notify_user(self, user_id: str, message: dict):
+        # Notify via WebSocket
         if user_id in self.user_connections:
             disconnected = set()
             for ws in self.user_connections[user_id]:
@@ -47,6 +64,14 @@ class RealtimeCoordinator:
             
             for ws in disconnected:
                 self.user_connections[user_id].discard(ws)
+        
+        # Notify via SSE
+        if user_id in self.sse_clients:
+            for queue in self.sse_clients[user_id]:
+                try:
+                    await queue.put(message)
+                except Exception:
+                    pass
 
     async def broadcast_to_role(self, role: str, message: dict):
         if role in self.role_connections:

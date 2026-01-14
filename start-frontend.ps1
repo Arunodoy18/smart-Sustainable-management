@@ -4,5 +4,5 @@ Write-Host "  ♻️  SMART WASTE AI - FRONTEND" -ForegroundColor Green
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
-Set-Location "frontend"
+Set-Location "web"
 npm run dev

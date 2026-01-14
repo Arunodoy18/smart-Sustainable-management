@@ -1,13 +1,16 @@
 from typing import List, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.services.waste_service import WasteService
 from app.schemas.waste import WasteEntryResponse, WasteEntryUpdate
 from app.models.user import Profile
 from app.core.coordinator import coordinator
+from app.core.config import settings
 import json
 from uuid import UUID
+import asyncio
 
 router = APIRouter()
 
@@ -24,7 +27,7 @@ async def classify_waste(
     """
     waste_service = WasteService(db)
     
-    # Step 1: Upload image to Supabase
+    # Step 1: Persist image
     file_content = await file.read()
     image_url = await waste_service.upload_image(file_content, file.filename)
     
@@ -114,6 +117,62 @@ def get_analytics(
     """
     waste_service = WasteService(db)
     return waste_service.get_analytics()
+
+
+@router.get("/sse/{token}")
+async def sse_endpoint(
+    request: Request,
+    token: str
+):
+    """
+    Server-Sent Events for real-time updates.
+    Fallback for browsers that don't support WebSocket well.
+    """
+    from app.core import security
+    from jose import jwt
+    
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        user_id = payload.get("sub")
+    except Exception:
+        return StreamingResponse(
+            iter(["data: {\"error\": \"Invalid token\"}\n\n"]),
+            media_type="text/event-stream"
+        )
+    
+    async def event_generator():
+        queue = asyncio.Queue()
+        
+        # Register this client
+        coordinator.add_sse_client(user_id, queue)
+        
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                    
+                try:
+                    # Wait for events with timeout for keepalive
+                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    # Send keepalive
+                    yield f": keepalive\n\n"
+        finally:
+            coordinator.remove_sse_client(user_id, queue)
+    
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 
 @router.websocket("/ws/{token}")
 async def websocket_endpoint(

@@ -27,7 +27,7 @@ class WasteService:
         with open(file_path, "wb") as f:
             f.write(file_content)
         
-        # In a real app, this would be served by a static file handler
+        # Return path relative to storage root for static serving
         return f"/storage/{unique_filename}"
 
     async def classify_and_record(
@@ -131,18 +131,28 @@ class WasteService:
         return db_entry
 
     def get_analytics(self) -> Dict[str, Any]:
+        from datetime import date
+        
         entries = self.db.query(WasteEntry).all()
         total = len(entries)
+        
         if total == 0:
             return {
-                "total_waste_entries": 0,
-                "recyclable_count": 0,
-                "collected_count": 0,
-                "pending_count": 0,
+                "total_entries": 0,
+                "by_type": {
+                    "recyclable": 0,
+                    "organic": 0,
+                    "e_waste": 0,
+                    "hazardous": 0,
+                    "general": 0
+                },
                 "recycling_rate": 0,
-                "category_breakdown": {},
-                "average_confidence": 0,
-                "impact_summary": "No data yet."
+                "avg_confidence": 0,
+                "co2_saved_kg": 0,
+                "energy_saved_kwh": 0,
+                "pending_pickups": 0,
+                "collected_today": 0,
+                "points_earned": 0
             }
             
         recyclable = sum(1 for e in entries if e.is_recyclable)
@@ -150,17 +160,45 @@ class WasteService:
         pending = sum(1 for e in entries if e.status == "pending")
         avg_confidence = sum(e.confidence_score for e in entries) / total
         
-        category_dist = {}
+        # Count by waste type
+        by_type = {
+            "recyclable": 0,
+            "organic": 0,
+            "e_waste": 0,
+            "hazardous": 0,
+            "general": 0
+        }
         for e in entries:
-            category_dist[e.waste_type] = category_dist.get(e.waste_type, 0) + 1
+            if e.waste_type in by_type:
+                by_type[e.waste_type] += 1
+        
+        # Count collected today
+        today = date.today()
+        collected_today = sum(
+            1 for e in entries 
+            if e.status == "collected" and e.collected_at and e.collected_at.date() == today
+        )
+        
+        # Environmental impact estimates
+        co2_per_recyclable = 2.5  # kg CO2 saved per recyclable item
+        energy_per_recyclable = 10  # kWh saved per recyclable item
+        co2_saved = recyclable * co2_per_recyclable
+        energy_saved = recyclable * energy_per_recyclable
+        
+        # Points calculation
+        base_points = total * 10
+        recycling_bonus = recyclable * 5
+        confidence_bonus = int(avg_confidence * 100)
+        points_earned = base_points + recycling_bonus + confidence_bonus
             
         return {
-            "total_waste_entries": total,
-            "recyclable_count": recyclable,
-            "collected_count": collected,
-            "pending_count": pending,
+            "total_entries": total,
+            "by_type": by_type,
             "recycling_rate": round((recyclable / total) * 100, 1),
-            "category_breakdown": category_dist,
-            "average_confidence": round(avg_confidence, 2),
-            "impact_summary": f"Prevented approx. {recyclable * 2.5} kg of CO2 emissions."
+            "avg_confidence": round(avg_confidence, 2),
+            "co2_saved_kg": round(co2_saved, 2),
+            "energy_saved_kwh": round(energy_saved, 2),
+            "pending_pickups": pending,
+            "collected_today": collected_today,
+            "points_earned": points_earned
         }

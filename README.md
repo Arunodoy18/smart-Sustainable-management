@@ -1,12 +1,5 @@
 # 🌍 Smart Waste Management AI System
 
-> [!IMPORTANT]
-> **🧊 HACKATHON MVP FROZEN**: The official MVP submission is now LOCKED for judging. 
-> - **Official Submission Details**: See [HACKATHON_FREEZE.md](./HACKATHON_FREEZE.md)
-> - **Live Demo**: [Official Frontend URL](https://frontend.jollysea-c5c0b121.centralus.azurecontainerapps.io)
-> 
-> **✨ POST-SUBMISSION ENHANCEMENTS**: Current local development (Orchid + `npm run dev`) contains active UI/UX and stability improvements that are NOT part of the submitted live environment. These represent the "Next Generation" features for future releases.
-
 **Hackathon 2026 | MVP Ready | Production Deployable**
 
 An AI-powered waste management system that uses **confidence-aware recommendations** to ensure safe recycling, reduce contamination, and enable accountable waste collection in smart cities.
@@ -85,22 +78,43 @@ docker-compose up -d
 # Database Admin: http://localhost:8080
 ```
 
-### Option 2: Local Development (Fastest)
+### Option 2: Local Development
 
 **Backend Setup:**
+
 ```bash
-# Start backend in one command (automatically handles venv)
-.\start-backend.ps1
+cd backend
+
+# Create virtual environment
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+copy ..\\.env.example .env
+# Edit .env with your database credentials
+
+# Initialize database
+python -m app.db.init_db
+
+# Run backend
+uvicorn app.main:app --reload --port 8000
 ```
 
 **Frontend Setup:**
-```bash
-# Start frontend in one command
-.\start-frontend.ps1
-```
 
-**Manual Setup (Step-by-Step):**
-If you prefer manual control:
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
 
 **Database Setup:**
 
