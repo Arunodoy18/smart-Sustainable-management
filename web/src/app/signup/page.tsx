@@ -7,6 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Button, Input, Card } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { UserRole } from '@/lib/types';
+import AnimatedBackground from '@/components/auth/AnimatedBackground';
+import AuthHero from '@/components/auth/AuthHero';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -65,22 +67,13 @@ export default function SignupPage() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-eco-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent-teal/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-neutral-900">
+      {/* Animated Background */}
+      <AnimatedBackground />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-eco-500/20 mb-4">
-            <span className="text-4xl">♻️</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Create Account</h1>
-          <p className="text-gray-400 mt-2">Join the sustainable future</p>
-        </div>
+        {/* Hero Section */}
+        <AuthHero />
 
         <Card variant="elevated" className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -141,8 +134,8 @@ export default function SignupPage() {
                     className={cn(
                       'p-4 rounded-xl border-2 text-left transition-all duration-200',
                       formData.role === role.value
-                        ? 'border-eco-500 bg-eco-500/10'
-                        : 'border-surface-hover hover:border-surface-active'
+                        ? 'border-emerald-500 bg-emerald-500/10'
+                        : 'border-neutral-700 hover:border-neutral-600'
                     )}
                   >
                     <span className="text-2xl">{role.icon}</span>
@@ -172,12 +165,19 @@ export default function SignupPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Already have an account?{' '}
-              <Link href="/login" className="text-eco-400 hover:text-eco-300 font-medium">
+              <Link href="/login" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
                 Sign in
               </Link>
             </p>
           </div>
         </Card>
+
+        {/* Info hint */}
+        <div className="mt-6 p-4 rounded-xl bg-neutral-800/50 border border-neutral-700/50">
+          <p className="text-xs text-gray-400 text-center">
+            Join thousands making waste management smarter
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Button, Input, Card } from '@/components/ui';
+import AnimatedBackground from '@/components/auth/AnimatedBackground';
+import AuthHero from '@/components/auth/AuthHero';
+import ExploreMessage from '@/components/auth/ExploreMessage';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +16,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showExplore, setShowExplore] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,22 +31,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-eco-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent-teal/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-neutral-900">
+      {/* Animated Background */}
+      <AnimatedBackground />
+
+      {/* Explore Message Modal */}
+      <ExploreMessage isOpen={showExplore} onClose={() => setShowExplore(false)} />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-eco-500/20 mb-4">
-            <span className="text-4xl">♻️</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white">Smart Waste Management</h1>
-          <p className="text-gray-400 mt-2">Sign in to continue</p>
-        </div>
+        {/* Hero Section */}
+        <AuthHero />
 
         <Card variant="elevated" className="p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -88,17 +86,28 @@ export default function LoginPage() {
               <Link href="/signup" className="text-eco-400 hover:text-eco-300 font-medium">
                 Sign up
               </Link>
-            </p>
+            </p>space-y-4">
+            {/* Explore Button */}
+            <button
+              type="button"
+              onClick={() => setShowExplore(true)}
+              className="w-full py-2.5 text-emerald-400 hover:text-emerald-300 border border-emerald-600/30 hover:border-emerald-600/50 rounded-lg font-medium transition-all duration-200 hover:bg-emerald-600/5"
+            >
+              Explore Why This Matters
+            </button>
+
+            <div className="text-center">
+              <p className="text-gray-400">
+                Don&apos;t have an account?{' '}
+                <Link href="/signup" className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors">
+                  Sign up
+                </Link>
+              </p>
+            </div>
           </div>
         </Card>
 
-        {/* Demo credentials hint */}
-        <div className="mt-6 p-4 rounded-xl bg-surface/50 border border-surface-hover">
-          <p className="text-xs text-gray-500 text-center">
-            Demo accounts available for testing. Create a new account to get started.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+        {/* Info hint */}
+        <div className="mt-6 p-4 rounded-xl bg-neutral-800/50 border border-neutral-700/50">
+          <p className="text-xs text-gray-400 text-center">
+            Open-source civic technology for sustainable communities
