@@ -93,7 +93,6 @@ jobs:
         with:
           context: ./web
           push: true
-          no-cache: true
           tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
@@ -125,10 +124,4 @@ jobs:
           az containerapp update \
             --name ${{ env.FRONTEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }} \
-            --replace-env-vars \
-              "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" \
-              "NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }}" \
-              "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}" \
-              "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
-              "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"
+            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
