@@ -1,10 +1,3 @@
-/**
- * ExploreMessage Component
- * Interactive educational panel explaining the importance of smart waste management
- * Opens on "Explore" button click - no navigation, stays on auth page
- * Design: Calm, informative, civic-focused
- */
-
 'use client';
 
 import { X } from 'lucide-react';
