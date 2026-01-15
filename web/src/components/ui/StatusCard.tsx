@@ -12,7 +12,7 @@ interface StatusCardProps {
   className?: string;
 }
 
-export function StatusCard({ entry, showUser = false, onClick, className }: StatusCardProps) {
+export function StatusCard({ entry, onClick, className }: StatusCardProps) {
   const wasteInfo = getWasteTypeInfo(entry.waste_type);
   
   const statusConfig = {

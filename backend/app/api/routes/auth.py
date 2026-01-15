@@ -12,6 +12,7 @@ import uuid
 
 router = APIRouter()
 
+
 @router.post("/login/access-token", response_model=Token)
 def login_access_token(
     db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
@@ -20,11 +21,13 @@ def login_access_token(
     OAuth2 compatible token login, get an access token for future requests
     """
     user = db.query(Profile).filter(Profile.email == form_data.username).first()
-    if not user or not security.verify_password(form_data.password, user.hashed_password):
+    if not user or not security.verify_password(
+        form_data.password, user.hashed_password
+    ):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    
+
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return {
         "access_token": security.create_access_token(
@@ -33,12 +36,9 @@ def login_access_token(
         "token_type": "bearer",
     }
 
+
 @router.post("/signup", response_model=User)
-def create_user(
-    *,
-    db: Session = Depends(deps.get_db),
-    user_in: UserCreate
-) -> Any:
+def create_user(*, db: Session = Depends(deps.get_db), user_in: UserCreate) -> Any:
     """
     Create new user.
     """
@@ -48,7 +48,7 @@ def create_user(
             status_code=400,
             detail="The user with this username already exists in the system.",
         )
-    
+
     db_obj = Profile(
         id=uuid.uuid4(),
         email=user_in.email,
@@ -56,12 +56,13 @@ def create_user(
         full_name=user_in.full_name,
         role=user_in.role,
         phone=user_in.phone,
-        address=user_in.address
+        address=user_in.address,
     )
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
 
 @router.get("/me", response_model=User)
 def read_user_me(

@@ -7,7 +7,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { X } from 'lucide-react';
 
 interface ExploreMessageProps {
@@ -59,7 +58,7 @@ export default function ExploreMessage({ isOpen, onClose }: ExploreMessageProps)
                   <p className="text-gray-400 leading-relaxed">
                     Every year, cities generate millions of tons of waste. When improperly sorted, 
                     recyclable materials end up in landfills, and contamination ruins entire batches 
-                    of recycling. This isn't just an environmental issue—it's a resource loss that 
+                    of recycling. This isn&apos;t just an environmental issue—it&apos;s a resource loss that 
                     affects our communities and future generations.
                   </p>
                 </div>
@@ -93,7 +92,7 @@ export default function ExploreMessage({ isOpen, onClose }: ExploreMessageProps)
                 <div>
                   <h3 className="text-lg font-medium text-gray-100 mb-2">Citizens + Technology = Impact</h3>
                   <p className="text-gray-400 leading-relaxed">
-                    Technology alone isn't the answer. Smart waste management works when citizens, 
+                    Technology alone isn&apos;t the answer. Smart waste management works when citizens, 
                     collectors, and systems work together. This platform connects all stakeholders—giving 
                     real-time feedback, tracking progress, and building habits that create lasting change.
                   </p>

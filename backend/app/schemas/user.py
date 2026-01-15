@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr
 from uuid import UUID
 from datetime import datetime
 
+
 # Shared properties
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
@@ -12,14 +13,17 @@ class UserBase(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
 
+
 # Properties to receive via API on creation
 class UserCreate(UserBase):
     email: EmailStr
     password: str
 
+
 # Properties to receive via API on update
 class UserUpdate(UserBase):
     password: Optional[str] = None
+
 
 class UserInDBBase(UserBase):
     id: UUID
@@ -29,13 +33,16 @@ class UserInDBBase(UserBase):
     class Config:
         from_attributes = True
 
+
 # Additional properties to return via API
 class User(UserInDBBase):
     pass
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class TokenPayload(BaseModel):
     sub: Optional[str] = None

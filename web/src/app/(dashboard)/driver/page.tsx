@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRealtime, useGeolocation, useCamera } from '@/hooks';
 import { wasteApi } from '@/lib/api';
-import { WasteEntry, Location } from '@/lib/types';
+import { WasteEntry } from '@/lib/types';
 import { 
   Card, 
   CardHeader, 
@@ -12,7 +12,6 @@ import {
   CardContent,
   Button,
   Badge,
-  LoadingSpinner,
   Skeleton
 } from '@/components/ui';
 import { MapComponent } from '@/components/map';
@@ -33,7 +32,7 @@ import {
 type DriverView = 'list' | 'pickup' | 'verify';
 
 export default function DriverPage() {
-  const { user } = useAuth();
+  const { } = useAuth();
   const [pendingPickups, setPendingPickups] = useState<WasteEntry[]>([]);
   const [activePickup, setActivePickup] = useState<WasteEntry | null>(null);
   const [view, setView] = useState<DriverView>('list');

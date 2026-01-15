@@ -4,6 +4,7 @@ from enum import Enum
 from datetime import datetime
 from uuid import UUID
 
+
 class WasteType(str, Enum):
     RECYCLABLE = "recyclable"
     ORGANIC = "organic"
@@ -11,10 +12,12 @@ class WasteType(str, Enum):
     HAZARDOUS = "hazardous"
     GENERAL = "general"
 
+
 class WasteClassificationInput(BaseModel):
     image_url: Optional[str] = None
     user_id: Optional[UUID] = None
     location: Optional[Dict[str, float]] = None
+
 
 class WasteClassificationOutput(BaseModel):
     waste_type: str
@@ -28,15 +31,18 @@ class WasteClassificationOutput(BaseModel):
     collection_type: str
     impact_note: str
 
+
 class WasteEntryCreate(BaseModel):
     image_url: str
     location: Optional[Dict[str, float]] = None
+
 
 class WasteEntryUpdate(BaseModel):
     status: str
     collected_by: Optional[UUID] = None
     collection_image_url: Optional[str] = None
     collected_at: Optional[datetime] = None
+
 
 class WasteEntryResponse(BaseModel):
     id: UUID

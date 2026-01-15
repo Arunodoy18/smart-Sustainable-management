@@ -65,7 +65,6 @@ export function ClassificationResultCard({
   onViewDetails 
 }: ClassificationResultCardProps) {
   const wasteInfo = getWasteTypeInfo(entry.waste_type);
-  const confidenceLevel = getConfidenceLevel(entry.confidence_score);
 
   return (
     <div className="bg-surface rounded-2xl p-5 space-y-4 animate-fade-in">

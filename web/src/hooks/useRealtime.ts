@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { wsManager } from '@/lib/websocket';
-import type { WSMessage, WSEventType } from '@/lib/types';
+import type { WSMessage } from '@/lib/types';
 
 interface UseRealtimeOptions {
   onNewPickup?: (data: WSMessage['data']) => void;

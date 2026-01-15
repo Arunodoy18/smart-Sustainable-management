@@ -4,7 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui';
 import { formatDate } from '@/lib/utils';
 import { 
-  User, 
   Mail, 
   Phone, 
   MapPin, 

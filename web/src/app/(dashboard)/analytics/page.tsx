@@ -10,7 +10,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  LoadingSpinner,
   Skeleton
 } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -31,7 +30,6 @@ import {
   Leaf, 
   Zap, 
   TreeDeciduous,
-  TrendingUp,
   Globe,
   Award
 } from 'lucide-react';

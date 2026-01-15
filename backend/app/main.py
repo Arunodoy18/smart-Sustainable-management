@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 setup_logger()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
@@ -22,22 +23,26 @@ async def lifespan(app: FastAPI):
     print(f"🔗 API Documentation: http://localhost:8000/docs")
     print(f"📊 Health Check:      http://localhost:8000/api/v1/auth/me")
     print(f"📂 Storage Path:      {os.path.abspath(settings.STORAGE_PATH)}")
-    print(f"🔧 Database URL:      {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite/Local'}")
+    print(
+        f"🔧 Database URL:      {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite/Local'}"
+    )
     print(f"🌐 Environment:       {os.getenv('ENVIRONMENT', 'development')}")
     print("\n" + "—" * 60 + "\n")
-    
+
     from app.db.init_db import init_db
+
     init_db()
     yield
     # Shutdown: cleanup if needed
     print("\n🛑 SHUTTING DOWN BACKEND...\n")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     description="AI-powered waste management system with confidence-aware recommendations",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Set all CORS enabled origins
@@ -57,6 +62,7 @@ app.mount("/storage", StaticFiles(directory=settings.STORAGE_PATH), name="storag
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["waste"])
 
+
 @app.get("/")
 async def root():
     return {
@@ -67,6 +73,6 @@ async def root():
             "AI-powered waste classification",
             "Confidence-aware recommendations",
             "Driver collection verification",
-            "Real-time analytics"
-        ]
+            "Real-time analytics",
+        ],
     }

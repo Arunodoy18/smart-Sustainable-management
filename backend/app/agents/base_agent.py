@@ -6,6 +6,7 @@ from loguru import logger
 T_IN = TypeVar("T_IN", bound=BaseModel)
 T_OUT = TypeVar("T_OUT", bound=BaseModel)
 
+
 class AgentResponse(BaseModel, Generic[T_OUT]):
     success: bool
     data: Optional[T_OUT] = None
@@ -13,6 +14,7 @@ class AgentResponse(BaseModel, Generic[T_OUT]):
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     reasoning: Optional[str] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
 
 class BaseAgent(ABC, Generic[T_IN, T_OUT]):
     def __init__(self, name: str):

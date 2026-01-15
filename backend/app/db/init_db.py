@@ -4,6 +4,7 @@ from app.models.user import Profile
 from app.models.waste import WasteEntry
 from app.core.logger import logger
 
+
 def init_db():
     """Initialize database tables"""
     try:
@@ -13,6 +14,7 @@ def init_db():
     except Exception as e:
         logger.error(f"Failed to create database tables: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     init_db()

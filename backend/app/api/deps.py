@@ -13,6 +13,7 @@ reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
 
+
 def get_db() -> Generator:
     try:
         db = SessionLocal()
@@ -20,9 +21,9 @@ def get_db() -> Generator:
     finally:
         db.close()
 
+
 async def get_current_user(
-    db: Session = Depends(get_db),
-    token: str = Depends(reusable_oauth2)
+    db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> Profile:
     try:
         payload = jwt.decode(
@@ -39,6 +40,7 @@ async def get_current_user(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+
 def get_current_active_user(
     current_user: Profile = Depends(get_current_user),
 ) -> Profile:
@@ -46,20 +48,24 @@ def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+
 def get_current_active_driver(
     current_user: Profile = Depends(get_current_active_user),
 ) -> Profile:
     if current_user.role != "driver" and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
         )
     return current_user
+
 
 def get_current_active_admin(
     current_user: Profile = Depends(get_current_active_user),
 ) -> Profile:
     if current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="The user doesn't have enough privileges"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
         )
     return current_user

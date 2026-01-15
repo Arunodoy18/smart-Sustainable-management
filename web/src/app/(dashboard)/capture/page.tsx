@@ -36,7 +36,6 @@ export default function CapturePage() {
 
   const {
     isSupported: cameraSupported,
-    hasPermission: cameraPermission,
     error: cameraError,
     videoRef,
     canvasRef,
