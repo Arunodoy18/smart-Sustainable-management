@@ -67,7 +67,7 @@ export default function DriverPage() {
   // Real-time updates
   useRealtime({
     onNewPickup: (data) => {
-      const newEntry = data as WasteEntry;
+      const newEntry = data as unknown as WasteEntry;
       setPendingPickups((prev) => [newEntry, ...prev]);
       // Show notification
       if ('Notification' in window && Notification.permission === 'granted') {

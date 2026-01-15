@@ -131,7 +131,7 @@ export function MapComponent({
       const bounds = new google.maps.LatLngBounds();
       bounds.extend(pickupLocation);
       bounds.extend(driverLocation);
-      mapInstanceRef.current.fitBounds(bounds, { padding: 60 });
+      mapInstanceRef.current.fitBounds(bounds);
     }
   }, [pickupLocation, driverLocation, isLoaded]);
 

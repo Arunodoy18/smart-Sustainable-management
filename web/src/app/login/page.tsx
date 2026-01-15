@@ -32,14 +32,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-neutral-900">
-      {/* Animated Background */}
       <AnimatedBackground />
-
-      {/* Explore Message Modal */}
       <ExploreMessage isOpen={showExplore} onClose={() => setShowExplore(false)} />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Hero Section */}
         <AuthHero />
 
         <Card variant="elevated" className="p-6">
@@ -80,14 +76,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-gray-400">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-eco-400 hover:text-eco-300 font-medium">
-                Sign up
-              </Link>
-            </p>space-y-4">
-            {/* Explore Button */}
+          <div className="mt-6 space-y-4">
             <button
               type="button"
               onClick={() => setShowExplore(true)}
@@ -107,7 +96,12 @@ export default function LoginPage() {
           </div>
         </Card>
 
-        {/* Info hint */}
         <div className="mt-6 p-4 rounded-xl bg-neutral-800/50 border border-neutral-700/50">
           <p className="text-xs text-gray-400 text-center">
             Open-source civic technology for sustainable communities
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
