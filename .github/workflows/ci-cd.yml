@@ -69,12 +69,10 @@ jobs:
 
       - name: Log in to Azure
         uses: azure/login@v1
-        if: secrets.AZURE_CREDENTIALS != ''
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log into Registry
-        if: secrets.AZURE_CREDENTIALS != ''
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
@@ -83,7 +81,6 @@ jobs:
 
       # Backend Build
       - name: Build and Push Backend
-        if: secrets.AZURE_CREDENTIALS != ''
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -92,7 +89,6 @@ jobs:
 
       # Frontend Build
       - name: Build and Push Frontend
-        if: secrets.AZURE_CREDENTIALS != ''
         uses: docker/build-push-action@v5
         with:
           context: ./web
@@ -113,12 +109,10 @@ jobs:
     steps:
       - name: Log in to Azure
         uses: azure/login@v1
-        if: secrets.AZURE_CREDENTIALS != ''
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy Backend to Azure Container Apps
-        if: secrets.AZURE_CREDENTIALS != ''
         uses: azure/container-apps-deploy-action@v1
         with:
           appSourcePath: ${{ github.workspace }}
@@ -130,7 +124,6 @@ jobs:
           imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
 
       - name: Deploy Frontend to Azure Container Apps
-        if: secrets.AZURE_CREDENTIALS != ''
         uses: azure/container-apps-deploy-action@v1
         with:
           appSourcePath: ${{ github.workspace }}
