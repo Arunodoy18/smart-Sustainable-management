@@ -237,6 +237,7 @@ jobs:
         with:
           context: ./backend
           push: true
+          no-cache: true
           tags: |
             ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
             ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:latest
@@ -247,6 +248,7 @@ jobs:
         with:
           context: ./web
           push: true
+          no-cache: true
           tags: |
             ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
             ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:latest
@@ -294,6 +296,20 @@ jobs:
             }
           echo "✓ Backend deployed successfully"
 
+      - name: Force Backend Restart
+        run: |
+          echo "Forcing backend container restart to ensure new image is used..."
+          az containerapp revision restart \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision \
+            $(az containerapp revision list \
+              --name ${{ env.BACKEND_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --query "[0].name" -o tsv) \
+            2>/dev/null || echo "Restart command completed (may not be needed for new deployments)"
+          echo "✓ Backend restart initiated"
+
       - name: Deploy Frontend
         run: |
           echo "Deploying frontend with image tag: ${{ github.sha }}"
@@ -309,9 +325,9 @@ jobs:
 
       - name: Wait for Deployments to Stabilize
         run: |
-          echo "Waiting 60 seconds for containers to stabilize..."
+          echo "Waiting 90 seconds for containers to fully restart with new image..."
           echo "Azure Container Apps may take 60-120s for cold starts"
-          sleep 60
+          sleep 90
 
   # ============================================
   # STAGE 5: Post-Deploy Verification
@@ -322,6 +338,42 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Check Container Status and Logs
+        run: |
+          echo "=== Checking Backend Container Status ==="
+          
+          # Get the latest revision
+          REVISION=$(az containerapp revision list \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[0].name" -o tsv 2>/dev/null || echo "unknown")
+          
+          echo "Latest revision: ${REVISION}"
+          
+          # Check revision status
+          az containerapp revision show \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision "${REVISION}" \
+            --query "{name:name, active:properties.active, replicas:properties.replicas, trafficWeight:properties.trafficWeight, healthState:properties.healthState, provisioningState:properties.provisioningState}" \
+            2>/dev/null || echo "Could not get revision details"
+          
+          echo ""
+          echo "=== Recent Container Logs (last 50 lines) ==="
+          az containerapp logs show \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --tail 50 \
+            2>/dev/null || echo "Could not fetch logs (container may still be starting)"
+          
+          echo ""
+          echo "=== End Container Status ==="
+
       - name: Get Application URLs
         id: get-urls
         run: |
