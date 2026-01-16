@@ -71,7 +71,10 @@ class Settings(BaseSettings):
             errors.append("Database URL points to localhost in production")
 
         # Check OpenAI key if AI features are expected
-        if self.OPENAI_API_KEY.startswith("sk-...") or self.OPENAI_API_KEY == "mock-key":
+        if (
+            self.OPENAI_API_KEY.startswith("sk-...")
+            or self.OPENAI_API_KEY == "mock-key"
+        ):
             errors.append("OPENAI_API_KEY is not configured (AI features will fail)")
 
         if errors:

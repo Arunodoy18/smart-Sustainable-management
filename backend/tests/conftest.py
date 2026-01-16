@@ -5,8 +5,7 @@ import pytest
 os.environ["ENVIRONMENT"] = "test"
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
 os.environ["DATABASE_URL"] = os.environ.get(
-    "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost:5432/test_db"
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test_db"
 )
 os.environ["OPENAI_API_KEY"] = "sk-test-mock-key"
 

@@ -14,7 +14,7 @@ async def test_health_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get("/health")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
@@ -26,7 +26,7 @@ async def test_api_health_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get("/api/v1/health")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -37,11 +37,8 @@ async def test_signup_endpoint_exists():
     """Verify signup endpoint exists and validates input."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        response = await ac.post(
-            "/api/v1/auth/signup",
-            json={}
-        )
-    
+        response = await ac.post("/api/v1/auth/signup", json={})
+
     # Should return 422 (validation error) not 404 (not found)
     assert response.status_code != 404, "Signup endpoint not found"
     assert response.status_code in [422, 400, 500]
@@ -53,10 +50,9 @@ async def test_login_endpoint_exists():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.post(
-            "/api/v1/auth/login/access-token",
-            data={"username": "", "password": ""}
+            "/api/v1/auth/login/access-token", data={"username": "", "password": ""}
         )
-    
+
     # Should return 400/422 (bad credentials/validation) not 404 (not found)
     assert response.status_code != 404, "Login endpoint not found"
     assert response.status_code in [400, 422, 500]
@@ -68,7 +64,7 @@ async def test_me_endpoint_requires_auth():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get("/api/v1/auth/me")
-    
+
     # Should return 401 (unauthorized) not 404 (not found)
     assert response.status_code == 401, "Expected 401 for unauthenticated request"
 
@@ -80,7 +76,7 @@ async def test_classify_requires_auth():
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         files = {"file": ("test_image.jpg", b"fake_image_content", "image/jpeg")}
         response = await ac.post("/api/v1/waste/classify", files=files)
-    
+
     # Should return 401 for unauthenticated access
     assert response.status_code == 401
 
@@ -91,7 +87,7 @@ async def test_root_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get("/")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "message" in data

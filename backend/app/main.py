@@ -16,28 +16,33 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
     env = os.getenv("ENVIRONMENT", "development")
-    
+
     logger.info("=" * 50)
     logger.info("Smart Waste Management API - Starting")
     logger.info("=" * 50)
     logger.info(f"Environment: {env}")
     logger.info(f"API Docs: /docs")
     logger.info(f"Health Check: /health")
-    
+
     # Only show detailed info in development
     if env == "development":
         logger.info(f"Storage Path: {os.path.abspath(settings.STORAGE_PATH)}")
-        db_host = settings.database_url.split("@")[-1] if "@" in settings.database_url else "local"
+        db_host = (
+            settings.database_url.split("@")[-1]
+            if "@" in settings.database_url
+            else "local"
+        )
         logger.info(f"Database: {db_host}")
-    
+
     logger.info("=" * 50)
 
     from app.db.init_db import init_db
+
     init_db()
-    
+
     logger.info("Database initialized successfully")
     yield
-    
+
     # Shutdown
     logger.info("Shutting down...")
 
