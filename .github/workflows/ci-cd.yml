@@ -332,46 +332,101 @@ jobs:
           echo "backend_url=${BACKEND_URL}" >> $GITHUB_OUTPUT
           echo "frontend_url=${FRONTEND_URL}" >> $GITHUB_OUTPUT
 
+      - name: Diagnose Backend Connectivity
+        run: |
+          BACKEND_URL="${{ steps.get-urls.outputs.backend_url }}"
+          BACKEND_URL="${BACKEND_URL%/}"
+          
+          echo "=== Backend Connectivity Diagnostics ==="
+          echo ""
+          echo "Base URL: ${BACKEND_URL}"
+          echo ""
+          
+          # Test root path
+          echo "Testing root path (/):"
+          curl -s -w "\n  Status: %{http_code}, Time: %{time_total}s\n" --max-time 30 "${BACKEND_URL}/" 2>&1 | head -5 || echo "  Failed to connect"
+          echo ""
+          
+          # Test with verbose to see redirects
+          echo "Testing /health with verbose (showing redirects):"
+          curl -s -L -w "\n  Final Status: %{http_code}\n" --max-time 30 "${BACKEND_URL}/health" 2>&1 | head -5 || echo "  Failed to connect"
+          echo ""
+          
+          echo "=== End Diagnostics ==="
+          echo ""
+
       - name: Verify Backend Health
         run: |
           BACKEND_URL="${{ steps.get-urls.outputs.backend_url }}"
           
-          echo "Checking backend health at ${BACKEND_URL}/health..."
-          echo "Using exponential backoff (max 12 attempts, ~5 min total)..."
+          echo "Backend URL from secret: ${BACKEND_URL}"
+          echo ""
           
-          delay=5
-          max_attempts=12
+          # Remove trailing slash if present
+          BACKEND_URL="${BACKEND_URL%/}"
           
-          for i in $(seq 1 $max_attempts); do
-            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${BACKEND_URL}/health" 2>/dev/null || echo "000")
+          # Try multiple health endpoints to handle different proxy configurations
+          HEALTH_PATHS=("/health" "/healthz" "/api/health" "/api/v1/health")
+          
+          echo "Will try health endpoints: ${HEALTH_PATHS[*]}"
+          echo "Using exponential backoff (max 12 attempts per path, ~5 min total)..."
+          echo ""
+          
+          check_health() {
+            local url="$1"
+            local delay=5
+            local max_attempts=12
             
-            if [ "$response" = "200" ]; then
-              echo "✓ Backend health check passed on attempt $i"
+            for i in $(seq 1 $max_attempts); do
+              response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${url}" 2>/dev/null || echo "000")
+              
+              if [ "$response" = "200" ]; then
+                echo "✓ Health check passed at ${url} on attempt $i"
+                return 0
+              fi
+              
+              if [ $i -eq $max_attempts ]; then
+                return 1
+              fi
+              
+              echo "  Attempt $i/$max_attempts: HTTP $response, retrying in ${delay}s..."
+              sleep $delay
+              
+              if [ $delay -lt 30 ]; then
+                delay=$((delay + 5))
+              fi
+            done
+            return 1
+          }
+          
+          # Try each health path
+          for path in "${HEALTH_PATHS[@]}"; do
+            echo ""
+            echo "Trying ${BACKEND_URL}${path}..."
+            
+            if check_health "${BACKEND_URL}${path}"; then
+              echo ""
+              echo "✓ Backend is healthy!"
               exit 0
             fi
             
-            if [ $i -eq $max_attempts ]; then
-              echo "::error::Backend health check failed after $max_attempts attempts (last HTTP $response)"
-              echo ""
-              echo "Debugging info:"
-              echo "  URL: ${BACKEND_URL}/health"
-              echo "  Last response code: $response"
-              echo ""
-              echo "Possible causes:"
-              echo "  - Container still starting (increase wait time)"
-              echo "  - Deployment failed silently (check Azure Portal)"
-              echo "  - Health endpoint not in deployed image (verify Dockerfile)"
-              exit 1
-            fi
-            
-            echo "Attempt $i/$max_attempts failed (HTTP $response), retrying in ${delay}s..."
-            sleep $delay
-            
-            # Exponential backoff: 5, 10, 15, 20, 25, 30, 30, 30...
-            if [ $delay -lt 30 ]; then
-              delay=$((delay + 5))
-            fi
+            echo "  Path ${path} did not respond with 200"
           done
+          
+          # All paths failed
+          echo ""
+          echo "::error::Backend health check failed on all paths after exhaustive retries"
+          echo ""
+          echo "Debugging info:"
+          echo "  Base URL: ${BACKEND_URL}"
+          echo "  Tried paths: ${HEALTH_PATHS[*]}"
+          echo ""
+          echo "Troubleshooting steps:"
+          echo "  1. Check Azure Portal for container status and logs"
+          echo "  2. Verify the image contains the health endpoint"
+          echo "  3. Test manually: curl -v ${BACKEND_URL}/health"
+          echo "  4. Check if NEXT_PUBLIC_API_URL secret is correct"
+          exit 1
 
       - name: Verify API Auth Endpoints
         run: |

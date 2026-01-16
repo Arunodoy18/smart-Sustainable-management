@@ -21,6 +21,30 @@ async def test_health_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_healthz_endpoint():
+    """Verify Kubernetes-style health check endpoint is accessible."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/healthz")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_api_health_shortpath():
+    """Verify /api/health endpoint is accessible (for proxy configs)."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/api/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+
+
+@pytest.mark.asyncio
 async def test_api_health_endpoint():
     """Verify API health check endpoint is accessible."""
     transport = ASGITransport(app=app)

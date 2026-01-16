@@ -88,7 +88,32 @@ async def root():
     }
 
 
-@app.get(f"{settings.API_V1_STR}/health")
+# Health check endpoints - MUST be defined before any router includes
+# to ensure they're accessible at the root level
+@app.get("/health", tags=["health"])
+async def health_check_root():
+    """
+    Root-level health check endpoint.
+
+    Returns 200 OK immediately without any dependencies.
+    Used by: Azure Container Apps probes, CI/CD verification, load balancers.
+    """
+    return {"status": "ok"}
+
+
+@app.get("/healthz", tags=["health"])
+async def health_check_k8s():
+    """Kubernetes-style health check endpoint."""
+    return {"status": "ok"}
+
+
+@app.get("/api/health", tags=["health"])
+async def health_check_api():
+    """Health check at /api path for reverse proxy configurations."""
+    return {"status": "ok"}
+
+
+@app.get(f"{settings.API_V1_STR}/health", tags=["health"])
 async def health_check():
     """Health check endpoint for container orchestration and load balancers."""
     return {
@@ -96,9 +121,3 @@ async def health_check():
         "service": "waste-management-api",
         "version": "1.0.0",
     }
-
-
-@app.get("/health")
-async def health_check_root():
-    """Root-level health check for simpler probes."""
-    return {"status": "ok"}
