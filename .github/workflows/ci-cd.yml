@@ -283,40 +283,65 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Backend
+      - name: Deploy Backend with New Revision
         run: |
-          echo "Deploying backend with image tag: ${{ github.sha }}"
+          echo "=============================================="
+          echo "  DEPLOYING BACKEND"
+          echo "=============================================="
+          echo "Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
+          echo ""
+          
+          # Use revision-suffix to FORCE a new revision
+          REVISION_SUFFIX="v$(date +%Y%m%d%H%M%S)"
+          echo "Revision suffix: ${REVISION_SUFFIX}"
+          
+          # Update with explicit new revision
           az containerapp update \
             --name ${{ env.BACKEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }} \
+            --revision-suffix "${REVISION_SUFFIX}" \
+            --set-env-vars "DEPLOY_SHA=${{ github.sha }}" "DEPLOY_TIME=$(date -u +%Y%m%d%H%M%S)" \
             --output none || {
               echo "::error::Backend deployment failed"
               exit 1
             }
-          echo "✓ Backend deployed successfully"
-
-      - name: Force Backend Restart
-        run: |
-          echo "Forcing backend container restart to ensure new image is used..."
-          az containerapp revision restart \
+          
+          echo ""
+          echo "Waiting for new revision to be ready..."
+          sleep 30
+          
+          # Verify the new revision is active
+          LATEST_REVISION=$(az containerapp revision list \
             --name ${{ env.BACKEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --revision \
-            $(az containerapp revision list \
-              --name ${{ env.BACKEND_APP }} \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --query "[0].name" -o tsv) \
-            2>/dev/null || echo "Restart command completed (may not be needed for new deployments)"
-          echo "✓ Backend restart initiated"
+            --query "[0].name" -o tsv)
+          
+          echo "Latest revision: ${LATEST_REVISION}"
+          echo ""
+          
+          # Check revision status
+          az containerapp revision show \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision "${LATEST_REVISION}" \
+            --query "{name:name, active:properties.active, replicas:properties.replicas, runningState:properties.runningState}" \
+            2>/dev/null
+          
+          echo ""
+          echo "✓ Backend deployed with new revision"
 
       - name: Deploy Frontend
         run: |
           echo "Deploying frontend with image tag: ${{ github.sha }}"
+          
+          REVISION_SUFFIX="v$(date +%Y%m%d%H%M%S)"
+          
           az containerapp update \
             --name ${{ env.FRONTEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }} \
+            --revision-suffix "${REVISION_SUFFIX}" \
             --output none || {
               echo "::error::Frontend deployment failed"
               exit 1

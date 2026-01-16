@@ -88,6 +88,9 @@ app = FastAPI(
 # These must work without ANY external dependencies (DB, config, etc.)
 # =============================================================================
 
+# Build version - updated on each deployment
+BUILD_VERSION = "2026.01.17.1"
+
 
 @app.get("/health", tags=["health"])
 async def health_check_root():
@@ -104,7 +107,7 @@ async def health_check_root():
     - Not depend on external services
     - Work even if other initialization fails
     """
-    return {"status": "ok"}
+    return {"status": "ok", "version": BUILD_VERSION}
 
 
 @app.get("/healthz", tags=["health"])
