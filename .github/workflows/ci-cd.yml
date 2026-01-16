@@ -401,25 +401,61 @@ jobs:
           echo "Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
           echo ""
           
-          # Use revision-suffix to FORCE a new revision
-          REVISION_SUFFIX="v$(date +%Y%m%d%H%M%S)"
-          echo "Revision suffix: ${REVISION_SUFFIX}"
+          # CRITICAL: Configure registry credentials FIRST
+          # This ensures Azure can pull the NEW image from ACR
+          echo "Step 1: Configuring registry credentials..."
+          az containerapp registry set \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ secrets.REGISTRY_LOGIN_SERVER }} \
+            --username ${{ secrets.REGISTRY_USERNAME }} \
+            --password ${{ secrets.REGISTRY_PASSWORD }} \
+            --output none
           
-          # Update with explicit new revision
+          echo "✓ Registry credentials configured"
+          echo ""
+          
+          # Use revision-suffix to FORCE a new revision
+          REVISION_SUFFIX="sha-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "Step 2: Creating new revision with suffix: ${REVISION_SUFFIX}"
+          
+          # CRITICAL: Use --container-name to explicitly target the container
+          # and force image update
           az containerapp update \
             --name ${{ env.BACKEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }} \
             --revision-suffix "${REVISION_SUFFIX}" \
             --set-env-vars "DEPLOY_SHA=${{ github.sha }}" "DEPLOY_TIME=$(date -u +%Y%m%d%H%M%S)" \
+            --min-replicas 1 \
+            --max-replicas 3 \
             --output none || {
               echo "::error::Backend deployment failed"
               exit 1
             }
           
+          echo "✓ Update command completed"
           echo ""
-          echo "Waiting for new revision to be ready..."
-          sleep 30
+          
+          # Step 3: Deactivate OLD revisions to force traffic to new one
+          echo "Step 3: Deactivating old revisions..."
+          OLD_REVISIONS=$(az containerapp revision list \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --query "[?properties.active && !contains(name, '${REVISION_SUFFIX}')].name" -o tsv)
+          
+          for rev in $OLD_REVISIONS; do
+            echo "  Deactivating: $rev"
+            az containerapp revision deactivate \
+              --name ${{ env.BACKEND_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --revision "$rev" \
+              --output none 2>/dev/null || true
+          done
+          
+          echo ""
+          echo "Step 4: Waiting for new revision to be ready..."
+          sleep 45
           
           # Verify the new revision is active
           LATEST_REVISION=$(az containerapp revision list \
@@ -428,6 +464,23 @@ jobs:
             --query "[0].name" -o tsv)
           
           echo "Latest revision: ${LATEST_REVISION}"
+          
+          # Get image being used by current revision
+          CURRENT_IMAGE=$(az containerapp revision show \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision "${LATEST_REVISION}" \
+            --query "properties.template.containers[0].image" -o tsv 2>/dev/null)
+          
+          echo "Image in revision: ${CURRENT_IMAGE}"
+          echo "Expected image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
+          
+          if [ "$CURRENT_IMAGE" != "${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}" ]; then
+            echo "::warning::Image mismatch! Revision may not have the correct image."
+          else
+            echo "✓ Image verified in revision"
+          fi
+          
           echo ""
           
           # Check revision status
@@ -445,13 +498,23 @@ jobs:
         run: |
           echo "Deploying frontend with image tag: ${{ github.sha }}"
           
-          REVISION_SUFFIX="v$(date +%Y%m%d%H%M%S)"
+          # Configure registry for frontend too
+          az containerapp registry set \
+            --name ${{ env.FRONTEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --server ${{ secrets.REGISTRY_LOGIN_SERVER }} \
+            --username ${{ secrets.REGISTRY_USERNAME }} \
+            --password ${{ secrets.REGISTRY_PASSWORD }} \
+            --output none
+          
+          REVISION_SUFFIX="sha-$(echo ${{ github.sha }} | cut -c1-7)"
           
           az containerapp update \
             --name ${{ env.FRONTEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }} \
             --revision-suffix "${REVISION_SUFFIX}" \
+            --min-replicas 1 \
             --output none || {
               echo "::error::Frontend deployment failed"
               exit 1
@@ -460,9 +523,22 @@ jobs:
 
       - name: Wait for Deployments to Stabilize
         run: |
-          echo "Waiting 90 seconds for containers to fully restart with new image..."
-          echo "Azure Container Apps may take 60-120s for cold starts"
-          sleep 90
+          echo "Waiting 60 seconds for new revisions to become active..."
+          sleep 60
+          
+          # Restart containers to force fresh pull
+          echo "Restarting backend to ensure fresh image pull..."
+          az containerapp revision restart \
+            --name ${{ env.BACKEND_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --revision $(az containerapp revision list \
+              --name ${{ env.BACKEND_APP }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --query "[0].name" -o tsv) \
+            --output none 2>/dev/null || echo "Restart not needed or not supported"
+          
+          echo "Waiting additional 60 seconds for restart..."
+          sleep 60
 
   # ============================================
   # STAGE 5: Post-Deploy Verification
