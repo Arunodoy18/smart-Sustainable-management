@@ -309,8 +309,9 @@ jobs:
 
       - name: Wait for Deployments to Stabilize
         run: |
-          echo "Waiting 30 seconds for containers to stabilize..."
-          sleep 30
+          echo "Waiting 60 seconds for containers to stabilize..."
+          echo "Azure Container Apps may take 60-120s for cold starts"
+          sleep 60
 
   # ============================================
   # STAGE 5: Post-Deploy Verification
@@ -336,19 +337,40 @@ jobs:
           BACKEND_URL="${{ steps.get-urls.outputs.backend_url }}"
           
           echo "Checking backend health at ${BACKEND_URL}/health..."
+          echo "Using exponential backoff (max 12 attempts, ~5 min total)..."
           
-          for i in {1..5}; do
-            response=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health" || echo "000")
+          delay=5
+          max_attempts=12
+          
+          for i in $(seq 1 $max_attempts); do
+            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${BACKEND_URL}/health" 2>/dev/null || echo "000")
+            
             if [ "$response" = "200" ]; then
-              echo "✓ Backend health check passed"
-              break
+              echo "✓ Backend health check passed on attempt $i"
+              exit 0
             fi
-            if [ $i -eq 5 ]; then
-              echo "::error::Backend health check failed after 5 attempts (HTTP $response)"
+            
+            if [ $i -eq $max_attempts ]; then
+              echo "::error::Backend health check failed after $max_attempts attempts (last HTTP $response)"
+              echo ""
+              echo "Debugging info:"
+              echo "  URL: ${BACKEND_URL}/health"
+              echo "  Last response code: $response"
+              echo ""
+              echo "Possible causes:"
+              echo "  - Container still starting (increase wait time)"
+              echo "  - Deployment failed silently (check Azure Portal)"
+              echo "  - Health endpoint not in deployed image (verify Dockerfile)"
               exit 1
             fi
-            echo "Attempt $i failed (HTTP $response), retrying in 10s..."
-            sleep 10
+            
+            echo "Attempt $i/$max_attempts failed (HTTP $response), retrying in ${delay}s..."
+            sleep $delay
+            
+            # Exponential backoff: 5, 10, 15, 20, 25, 30, 30, 30...
+            if [ $delay -lt 30 ]; then
+              delay=$((delay + 5))
+            fi
           done
 
       - name: Verify API Auth Endpoints
@@ -357,29 +379,50 @@ jobs:
           
           echo "Verifying auth endpoints..."
           
-          # Test signup endpoint exists (should return 422 for missing body, not 404)
-          signup_response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${BACKEND_URL}/api/v1/auth/signup" \
-            -H "Content-Type: application/json" \
-            -d '{}')
+          # Helper function with retry
+          check_endpoint() {
+            local url="$1"
+            local method="$2"
+            local content_type="$3"
+            local data="$4"
+            local name="$5"
+            
+            for attempt in 1 2 3; do
+              response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+                -X "$method" "$url" \
+                -H "Content-Type: $content_type" \
+                -d "$data" 2>/dev/null || echo "000")
+              
+              if [ "$response" != "404" ] && [ "$response" != "000" ]; then
+                echo "✓ $name responding (HTTP $response)"
+                return 0
+              fi
+              
+              if [ $attempt -lt 3 ]; then
+                echo "  Attempt $attempt: HTTP $response, retrying..."
+                sleep 5
+              fi
+            done
+            
+            echo "::error::$name not found after 3 attempts (HTTP $response)"
+            return 1
+          }
           
-          if [ "$signup_response" = "404" ]; then
-            echo "::error::Auth signup endpoint not found (404)"
-            exit 1
-          fi
-          echo "✓ Signup endpoint responding (HTTP $signup_response)"
+          # Test signup endpoint exists (should return 422 for missing body, not 404)
+          check_endpoint \
+            "${BACKEND_URL}/api/v1/auth/signup" \
+            "POST" \
+            "application/json" \
+            '{}' \
+            "Signup endpoint" || exit 1
           
           # Test login endpoint exists
-          login_response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${BACKEND_URL}/api/v1/auth/login/access-token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d 'username=test&password=test')
-          
-          if [ "$login_response" = "404" ]; then
-            echo "::error::Auth login endpoint not found (404)"
-            exit 1
-          fi
-          echo "✓ Login endpoint responding (HTTP $login_response)"
+          check_endpoint \
+            "${BACKEND_URL}/api/v1/auth/login/access-token" \
+            "POST" \
+            "application/x-www-form-urlencoded" \
+            'username=test&password=test' \
+            "Login endpoint" || exit 1
 
       - name: Verify Frontend Accessible
         run: |
@@ -392,13 +435,22 @@ jobs:
           
           echo "Checking frontend at ${FRONTEND_URL}..."
           
-          response=$(curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}" || echo "000")
-          if [ "$response" = "200" ]; then
-            echo "✓ Frontend accessible"
-          else
-            echo "::error::Frontend not accessible (HTTP $response)"
-            exit 1
-          fi
+          for attempt in 1 2 3 4 5; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${FRONTEND_URL}" 2>/dev/null || echo "000")
+            
+            if [ "$response" = "200" ]; then
+              echo "✓ Frontend accessible"
+              exit 0
+            fi
+            
+            if [ $attempt -lt 5 ]; then
+              echo "Attempt $attempt: HTTP $response, retrying in 10s..."
+              sleep 10
+            fi
+          done
+          
+          echo "::error::Frontend not accessible after 5 attempts (HTTP $response)"
+          exit 1
 
       - name: Deployment Summary
         run: |
