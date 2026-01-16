@@ -219,6 +219,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify Source Code Has Health Endpoint
+        run: |
+          echo "=============================================="
+          echo "  VERIFYING SOURCE CODE BEFORE BUILD"
+          echo "=============================================="
+          
+          # Check that /health endpoint exists in main.py
+          if grep -q '@app.get("/health"' backend/app/main.py; then
+            echo "✓ /health endpoint found in source code"
+          else
+            echo "::error::/health endpoint NOT FOUND in backend/app/main.py!"
+            echo "Source code content:"
+            cat backend/app/main.py
+            exit 1
+          fi
+          
+          # Check that health returns ok
+          if grep -q '"status": "ok"' backend/app/main.py || grep -q "'status': 'ok'" backend/app/main.py; then
+            echo "✓ Health endpoint returns 'ok' status"
+          else
+            echo "::error::Health endpoint does not return expected response!"
+            exit 1
+          fi
+          
+          # Show the health endpoint code
+          echo ""
+          echo "Health endpoint code:"
+          grep -A 10 '@app.get("/health"' backend/app/main.py || true
+          echo ""
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
@@ -231,16 +261,91 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Build and Push Backend
-        id: build-backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          no-cache: true
-          tags: |
-            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
-            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:latest
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image (Local First)
+        run: |
+          echo "Building backend image locally for testing..."
+          cd backend
+          docker build --no-cache -t backend-test:local .
+          echo "✓ Backend image built successfully"
+
+      - name: Test Backend Image Before Push
+        run: |
+          echo "=============================================="
+          echo "  TESTING BACKEND IMAGE BEFORE PUSH"
+          echo "=============================================="
+          
+          # Run the container
+          docker run -d --name backend-test -p 8000:8000 \
+            -e DATABASE_URL=postgresql://test:test@localhost/test \
+            -e SECRET_KEY=test-secret-key \
+            -e OPENAI_API_KEY=sk-test \
+            backend-test:local
+          
+          # Wait for startup
+          echo "Waiting for container to start..."
+          sleep 10
+          
+          # Check container is running
+          if ! docker ps | grep -q backend-test; then
+            echo "::error::Container failed to start!"
+            echo "Container logs:"
+            docker logs backend-test
+            exit 1
+          fi
+          
+          # Test /health endpoint
+          echo "Testing /health endpoint..."
+          HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" http://localhost:8000/health 2>/dev/null || echo "FAILED")
+          HTTP_CODE=$(echo "$HEALTH_RESPONSE" | tail -1)
+          BODY=$(echo "$HEALTH_RESPONSE" | head -n -1)
+          
+          echo "Response: $BODY"
+          echo "HTTP Code: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::/health endpoint returned $HTTP_CODE instead of 200!"
+            echo ""
+            echo "Container logs:"
+            docker logs backend-test
+            echo ""
+            echo "Testing root endpoint for comparison:"
+            curl -s http://localhost:8000/ || true
+            docker stop backend-test || true
+            docker rm backend-test || true
+            exit 1
+          fi
+          
+          echo "✓ /health endpoint works correctly!"
+          
+          # Test root endpoint
+          echo ""
+          echo "Testing root endpoint..."
+          ROOT_RESPONSE=$(curl -s http://localhost:8000/)
+          echo "Root response: $ROOT_RESPONSE"
+          
+          # Cleanup
+          docker stop backend-test
+          docker rm backend-test
+          
+          echo ""
+          echo "✓ Backend image verified successfully!"
+
+      - name: Push Backend Image
+        run: |
+          echo "Pushing verified backend image to registry..."
+          
+          # Tag for registry
+          docker tag backend-test:local ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
+          docker tag backend-test:local ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:latest
+          
+          # Push
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:latest
+          
+          echo "✓ Backend image pushed: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
 
       - name: Build and Push Frontend
         id: build-frontend
@@ -261,10 +366,15 @@ jobs:
 
       - name: Record Build Artifacts
         run: |
+          echo "=============================================="
+          echo "  BUILD COMPLETE - VERIFIED IMAGES"
+          echo "=============================================="
           echo "Backend Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
           echo "Frontend Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}"
           echo "Commit SHA: ${{ github.sha }}"
           echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          echo ""
+          echo "Backend /health endpoint: VERIFIED ✓"
 
   # ============================================
   # STAGE 4: Deploy to Production
