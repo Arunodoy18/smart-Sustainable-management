@@ -184,6 +184,7 @@ export default function HistoryPage() {
                   <CardTitle>Details</CardTitle>
                   <button
                     onClick={() => setSelectedEntry(null)}
+                    aria-label="Close details"
                     className="p-1 text-gray-400 hover:text-white lg:hidden"
                   >
                     <X className="w-5 h-5" />

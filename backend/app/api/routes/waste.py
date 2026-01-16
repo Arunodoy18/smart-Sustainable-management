@@ -1,4 +1,5 @@
 from typing import List, Any, Optional
+import logging
 from fastapi import (
     APIRouter,
     Depends,
@@ -18,6 +19,8 @@ from app.schemas.waste import WasteEntryResponse, WasteEntryUpdate
 from app.models.user import Profile
 from app.core.coordinator import coordinator
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 import json
 from uuid import UUID
 import asyncio
@@ -218,5 +221,5 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
             coordinator.disconnect(websocket, user_id, role)
 
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.warning(f"WebSocket connection error: {type(e).__name__}")
         await websocket.close(code=1011)

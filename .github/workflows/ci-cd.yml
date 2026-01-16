@@ -15,12 +15,15 @@ env:
   CONTAINER_ENV: hackathon-env
 
 jobs:
+  # ============================================
+  # STAGE 1: Validate & Test
+  # ============================================
   validate:
+    name: Validate Code Quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Backend Validation
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -32,13 +35,22 @@ jobs:
           pip install -r requirements.txt
           pip install pylint black
       
+      - name: Check Backend Code Format
+        run: |
+          cd backend
+          black --check . || {
+            echo "::error::Code formatting issues found. Run 'black .' locally to fix."
+            exit 1
+          }
+      
       - name: Lint Backend
         run: |
           cd backend
-          black --check . || echo "Black formatting issues found but continuing"
-          pylint app/ --disable=C,R,W0611 || echo "Pylint issues found but continuing"
+          pylint app/ --disable=C,R,W0611 --fail-under=5.0 || {
+            echo "::error::Backend code quality below threshold"
+            exit 1
+          }
 
-      # Frontend Validation
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -54,15 +66,155 @@ jobs:
       - name: Lint Frontend
         run: |
           cd web
-          npm run lint || echo "Lint warnings found but continuing"
+          npm run lint || {
+            echo "::error::Frontend linting failed"
+            exit 1
+          }
 
-  build-and-push:
+      - name: Type Check Frontend
+        run: |
+          cd web
+          npx tsc --noEmit || {
+            echo "::error::TypeScript type errors found"
+            exit 1
+          }
+
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
     needs: validate
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Run Backend Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          SECRET_KEY: test-secret-key-for-ci
+          OPENAI_API_KEY: sk-test-mock
+        run: |
+          cd backend
+          python -m pytest tests/ -v --tb=short || {
+            echo "::error::Backend tests failed"
+            exit 1
+          }
+
+  test-frontend:
+    name: Frontend Build Test
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd web
+          npm ci
+
+      - name: Build Frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://test-api.example.com
+        run: |
+          cd web
+          npm run build || {
+            echo "::error::Frontend build failed"
+            exit 1
+          }
+
+  # ============================================
+  # STAGE 2: Security & Environment Checks
+  # ============================================
+  security-check:
+    name: Security & Secrets Validation
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Required Secrets Exist
+        run: |
+          missing_secrets=()
+          
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+            missing_secrets+=("AZURE_CREDENTIALS")
+          fi
+          if [ -z "${{ secrets.REGISTRY_LOGIN_SERVER }}" ]; then
+            missing_secrets+=("REGISTRY_LOGIN_SERVER")
+          fi
+          if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+            missing_secrets+=("REGISTRY_USERNAME")
+          fi
+          if [ -z "${{ secrets.REGISTRY_PASSWORD }}" ]; then
+            missing_secrets+=("REGISTRY_PASSWORD")
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_API_URL }}" ]; then
+            missing_secrets+=("NEXT_PUBLIC_API_URL")
+          fi
+          
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing_secrets[*]}"
+            echo "Please configure these secrets in GitHub repository settings."
+            exit 1
+          fi
+          
+          echo "✓ All required secrets are configured"
+
+      - name: Check for Hardcoded Secrets
+        run: |
+          # Check for common secret patterns in code
+          if grep -rE "(sk-[a-zA-Z0-9]{20,}|password\s*=\s*['\"][^'\"]+['\"])" \
+             --include="*.py" --include="*.ts" --include="*.tsx" --include="*.js" \
+             --exclude-dir=node_modules --exclude-dir=.git . 2>/dev/null | \
+             grep -v "test" | grep -v "example" | grep -v ".env"; then
+            echo "::warning::Potential hardcoded secrets detected. Please review."
+          fi
+          echo "✓ Secret scan completed"
+
+  # ============================================
+  # STAGE 3: Build & Push Docker Images
+  # ============================================
+  build-and-push:
+    name: Build & Push Docker Images
+    needs: security-check
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      backend_image: ${{ steps.build-backend.outputs.image }}
+      frontend_image: ${{ steps.build-frontend.outputs.image }}
     
     steps:
       - uses: actions/checkout@v4
@@ -72,28 +224,32 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Log into Registry
+      - name: Log into Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      # Backend Build
       - name: Build and Push Backend
+        id: build-backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
-          tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
+          tags: |
+            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
+            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:latest
 
-      # Frontend Build
       - name: Build and Push Frontend
+        id: build-frontend
         uses: docker/build-push-action@v5
         with:
           context: ./web
           push: true
-          tags: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
+          tags: |
+            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
+            ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:latest
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }}
@@ -101,27 +257,161 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
+      - name: Record Build Artifacts
+        run: |
+          echo "Backend Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}"
+          echo "Frontend Image: ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Build Time: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  # ============================================
+  # STAGE 4: Deploy to Production
+  # ============================================
   deploy:
+    name: Deploy to Azure Container Apps
     needs: build-and-push
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: production
     
     steps:
+      - uses: actions/checkout@v4
+
       - name: Log in to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Backend to Azure Container Apps
+      - name: Deploy Backend
         run: |
+          echo "Deploying backend with image tag: ${{ github.sha }}"
           az containerapp update \
             --name ${{ env.BACKEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }}
+            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-backend:${{ github.sha }} \
+            --output none || {
+              echo "::error::Backend deployment failed"
+              exit 1
+            }
+          echo "✓ Backend deployed successfully"
 
-      - name: Deploy Frontend to Azure Container Apps
+      - name: Deploy Frontend
         run: |
+          echo "Deploying frontend with image tag: ${{ github.sha }}"
           az containerapp update \
             --name ${{ env.FRONTEND_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }}
+            --image ${{ secrets.REGISTRY_LOGIN_SERVER }}/waste-frontend:${{ github.sha }} \
+            --output none || {
+              echo "::error::Frontend deployment failed"
+              exit 1
+            }
+          echo "✓ Frontend deployed successfully"
+
+      - name: Wait for Deployments to Stabilize
+        run: |
+          echo "Waiting 30 seconds for containers to stabilize..."
+          sleep 30
+
+  # ============================================
+  # STAGE 5: Post-Deploy Verification
+  # ============================================
+  verify-deployment:
+    name: Verify Production Deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Get Application URLs
+        id: get-urls
+        run: |
+          # These would typically come from Azure or secrets
+          BACKEND_URL="${{ secrets.NEXT_PUBLIC_API_URL }}"
+          FRONTEND_URL="${{ secrets.FRONTEND_URL }}"
+          
+          echo "backend_url=${BACKEND_URL}" >> $GITHUB_OUTPUT
+          echo "frontend_url=${FRONTEND_URL}" >> $GITHUB_OUTPUT
+
+      - name: Verify Backend Health
+        run: |
+          BACKEND_URL="${{ steps.get-urls.outputs.backend_url }}"
+          
+          echo "Checking backend health at ${BACKEND_URL}/health..."
+          
+          for i in {1..5}; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" "${BACKEND_URL}/health" || echo "000")
+            if [ "$response" = "200" ]; then
+              echo "✓ Backend health check passed"
+              break
+            fi
+            if [ $i -eq 5 ]; then
+              echo "::error::Backend health check failed after 5 attempts (HTTP $response)"
+              exit 1
+            fi
+            echo "Attempt $i failed (HTTP $response), retrying in 10s..."
+            sleep 10
+          done
+
+      - name: Verify API Auth Endpoints
+        run: |
+          BACKEND_URL="${{ steps.get-urls.outputs.backend_url }}"
+          
+          echo "Verifying auth endpoints..."
+          
+          # Test signup endpoint exists (should return 422 for missing body, not 404)
+          signup_response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${BACKEND_URL}/api/v1/auth/signup" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          
+          if [ "$signup_response" = "404" ]; then
+            echo "::error::Auth signup endpoint not found (404)"
+            exit 1
+          fi
+          echo "✓ Signup endpoint responding (HTTP $signup_response)"
+          
+          # Test login endpoint exists
+          login_response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${BACKEND_URL}/api/v1/auth/login/access-token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d 'username=test&password=test')
+          
+          if [ "$login_response" = "404" ]; then
+            echo "::error::Auth login endpoint not found (404)"
+            exit 1
+          fi
+          echo "✓ Login endpoint responding (HTTP $login_response)"
+
+      - name: Verify Frontend Accessible
+        run: |
+          FRONTEND_URL="${{ steps.get-urls.outputs.frontend_url }}"
+          
+          if [ -z "$FRONTEND_URL" ]; then
+            echo "::warning::Frontend URL not configured, skipping frontend check"
+            exit 0
+          fi
+          
+          echo "Checking frontend at ${FRONTEND_URL}..."
+          
+          response=$(curl -s -o /dev/null -w "%{http_code}" "${FRONTEND_URL}" || echo "000")
+          if [ "$response" = "200" ]; then
+            echo "✓ Frontend accessible"
+          else
+            echo "::error::Frontend not accessible (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Deployment Summary
+        run: |
+          echo "========================================"
+          echo "       DEPLOYMENT SUCCESSFUL"
+          echo "========================================"
+          echo ""
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo ""
+          echo "Backend:  ${{ secrets.NEXT_PUBLIC_API_URL }}"
+          echo "Frontend: ${{ secrets.FRONTEND_URL }}"
+          echo ""
+          echo "All health checks passed ✓"

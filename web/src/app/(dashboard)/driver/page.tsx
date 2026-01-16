@@ -573,6 +573,7 @@ export default function DriverPage() {
         accept="image/*"
         capture="environment"
         onChange={handleFileUpload}
+        aria-label="Upload verification photo"
         className="hidden"
       />
     </div>

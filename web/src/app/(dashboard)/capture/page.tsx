@@ -212,6 +212,7 @@ export default function CapturePage() {
                   {/* Switch camera button */}
                   <button
                     onClick={switchCamera}
+                    aria-label="Switch camera"
                     className="absolute top-4 right-4 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors"
                   >
                     <SwitchCamera className="w-5 h-5" />
@@ -259,6 +260,7 @@ export default function CapturePage() {
               {/* Retake button */}
               <button
                 onClick={handleRetake}
+                aria-label="Retake photo"
                 className="absolute top-4 right-4 p-2 rounded-full bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -364,6 +366,7 @@ export default function CapturePage() {
         accept="image/*"
         capture="environment"
         onChange={handleFileUpload}
+        aria-label="Upload waste image"
         className="hidden"
       />
 

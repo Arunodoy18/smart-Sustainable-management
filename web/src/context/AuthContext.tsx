@@ -9,7 +9,7 @@ import {
   ReactNode 
 } from 'react';
 import { User, LoginCredentials, SignupData } from '@/lib/types';
-import { authApi, tokenStorage } from '@/lib/api';
+import { authApi, tokenStorage, ApiRequestError } from '@/lib/api';
 import { wsManager } from '@/lib/websocket';
 
 interface AuthContextType {
@@ -23,6 +23,21 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function getReadableErrorMessage(error: unknown): string {
+  if (error instanceof ApiRequestError) {
+    return error.message;
+  }
+  if (error instanceof Error) {
+    // Clean up common error messages
+    const msg = error.message;
+    if (msg.includes('fetch') || msg.includes('network')) {
+      return 'Unable to connect to the server. Please check your internet connection.';
+    }
+    return msg;
+  }
+  return 'An unexpected error occurred. Please try again.';
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Connect WebSocket after successful auth
       wsManager.connect();
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      // Only log non-auth errors (auth errors are expected when token expires)
+      if (error instanceof ApiRequestError && !error.isAuthError) {
+        console.error('Failed to fetch user:', error.message);
+      }
       tokenStorage.remove();
       setUser(null);
     } finally {
@@ -63,8 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.login(credentials);
       await refreshUser();
-    } finally {
+    } catch (error) {
       setIsLoading(false);
+      throw new Error(getReadableErrorMessage(error));
     }
   }, [refreshUser]);
 
@@ -78,8 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: data.password,
       });
       await refreshUser();
-    } finally {
+    } catch (error) {
       setIsLoading(false);
+      throw new Error(getReadableErrorMessage(error));
     }
   }, [refreshUser]);
 

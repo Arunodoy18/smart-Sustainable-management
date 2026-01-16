@@ -11,11 +11,17 @@ class WebSocketManager {
   private reconnectDelay = 1000;
   private handlers: Map<WSEventType | 'all', Set<WSEventHandler>> = new Map();
   private isIntentionallyClosed = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   connect(): void {
+    // Skip if running server-side
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     const token = tokenStorage.get();
     if (!token) {
-      console.warn('No auth token available for WebSocket connection');
+      // Don't warn - this is expected when not logged in
       return;
     }
 
@@ -23,13 +29,27 @@ class WebSocketManager {
       return;
     }
 
+    // Clear any pending reconnect
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     this.isIntentionallyClosed = false;
 
     try {
-      this.socket = new WebSocket(endpoints.waste.ws(token));
+      const wsUrl = endpoints.waste.ws(token);
+      
+      // Skip connection if URL looks invalid
+      if (!wsUrl || wsUrl.includes('undefined')) {
+        console.warn('[WebSocket] Invalid WebSocket URL - skipping connection');
+        return;
+      }
+      
+      this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
-        console.log('WebSocket connected');
+        console.info('[WebSocket] Connected');
         this.reconnectAttempts = 0;
       };
 
@@ -37,46 +57,59 @@ class WebSocketManager {
         try {
           const message: WSMessage = JSON.parse(event.data);
           this.notifyHandlers(message);
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+        } catch {
+          // Silently ignore malformed messages
         }
       };
 
       this.socket.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
-        if (!this.isIntentionallyClosed) {
+        if (!this.isIntentionallyClosed && event.code !== 1000) {
+          console.info('[WebSocket] Connection closed, will retry');
           this.attemptReconnect();
         }
       };
 
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+      this.socket.onerror = () => {
+        // Error details are not accessible in browser for security reasons
+        // The onclose handler will trigger reconnection
       };
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+    } catch {
+      // WebSocket creation failed - likely invalid URL
+      console.warn('[WebSocket] Failed to create connection');
     }
   }
 
   disconnect(): void {
     this.isIntentionallyClosed = true;
+    
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    
     if (this.socket) {
-      this.socket.close();
+      try {
+        this.socket.close(1000, 'User logout');
+      } catch {
+        // Ignore close errors
+      }
       this.socket = null;
     }
+    
+    this.reconnectAttempts = 0;
   }
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached');
+      console.info('[WebSocket] Max reconnection attempts reached');
       return;
     }
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
     
-    console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`);
-    
-    setTimeout(() => {
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this.connect();
     }, delay);
   }
@@ -95,16 +128,30 @@ class WebSocketManager {
 
   private notifyHandlers(message: WSMessage): void {
     // Notify specific event handlers
-    this.handlers.get(message.type)?.forEach((handler) => handler(message));
+    this.handlers.get(message.type)?.forEach((handler) => {
+      try {
+        handler(message);
+      } catch {
+        // Prevent handler errors from breaking the WebSocket
+      }
+    });
     // Notify 'all' handlers
-    this.handlers.get('all')?.forEach((handler) => handler(message));
+    this.handlers.get('all')?.forEach((handler) => {
+      try {
+        handler(message);
+      } catch {
+        // Prevent handler errors from breaking the WebSocket
+      }
+    });
   }
 
   send(data: Record<string, unknown>): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify(data));
-    } else {
-      console.warn('WebSocket is not connected');
+      try {
+        this.socket.send(JSON.stringify(data));
+      } catch {
+        // Ignore send failures - connection may have dropped
+      }
     }
   }
 

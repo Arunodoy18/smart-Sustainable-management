@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
+import logging
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import waste, auth
 from app.core.config import settings
@@ -8,33 +9,37 @@ from app.core.logger import setup_logger
 from contextlib import asynccontextmanager
 
 setup_logger()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Initialize database
-    banner = """
-    ┌────────────────────────────────────────────────────────┐
-    │  ♻️  SMART WASTE MANAGEMENT AI - BACKEND SYSTEM       │
-    │  🚀 Status: RUNNING (Local Development)               │
-    └────────────────────────────────────────────────────────┘
-    """
-    print("\n" + banner)
-    print(f"🔗 API Documentation: http://localhost:8000/docs")
-    print(f"📊 Health Check:      http://localhost:8000/api/v1/auth/me")
-    print(f"📂 Storage Path:      {os.path.abspath(settings.STORAGE_PATH)}")
-    print(
-        f"🔧 Database URL:      {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'SQLite/Local'}"
-    )
-    print(f"🌐 Environment:       {os.getenv('ENVIRONMENT', 'development')}")
-    print("\n" + "—" * 60 + "\n")
+    env = os.getenv("ENVIRONMENT", "development")
+    
+    logger.info("=" * 50)
+    logger.info("Smart Waste Management API - Starting")
+    logger.info("=" * 50)
+    logger.info(f"Environment: {env}")
+    logger.info(f"API Docs: /docs")
+    logger.info(f"Health Check: /health")
+    
+    # Only show detailed info in development
+    if env == "development":
+        logger.info(f"Storage Path: {os.path.abspath(settings.STORAGE_PATH)}")
+        db_host = settings.database_url.split("@")[-1] if "@" in settings.database_url else "local"
+        logger.info(f"Database: {db_host}")
+    
+    logger.info("=" * 50)
 
     from app.db.init_db import init_db
-
     init_db()
+    
+    logger.info("Database initialized successfully")
     yield
-    # Shutdown: cleanup if needed
-    print("\n🛑 SHUTTING DOWN BACKEND...\n")
+    
+    # Shutdown
+    logger.info("Shutting down...")
 
 
 app = FastAPI(
@@ -76,3 +81,19 @@ async def root():
             "Real-time analytics",
         ],
     }
+
+
+@app.get(f"{settings.API_V1_STR}/health")
+async def health_check():
+    """Health check endpoint for container orchestration and load balancers."""
+    return {
+        "status": "healthy",
+        "service": "waste-management-api",
+        "version": "1.0.0",
+    }
+
+
+@app.get("/health")
+async def health_check_root():
+    """Root-level health check for simpler probes."""
+    return {"status": "ok"}
