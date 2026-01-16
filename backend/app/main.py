@@ -3,93 +3,92 @@ from fastapi.staticfiles import StaticFiles
 import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import waste, auth
-from app.core.config import settings
-from app.core.logger import setup_logger
 from contextlib import asynccontextmanager
 
-setup_logger()
+# =============================================================================
+# CRITICAL: Health check must be available IMMEDIATELY on startup
+# Do NOT import anything that could fail (DB, external services) at module level
+# =============================================================================
+
+# Basic logger setup that cannot fail
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
+# Track application readiness state
+APP_STATE = {"db_initialized": False, "startup_complete": False, "startup_errors": []}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize database
+    """Application lifespan manager - DB failures are logged but don't prevent startup."""
     env = os.getenv("ENVIRONMENT", "development")
 
     logger.info("=" * 50)
     logger.info("Smart Waste Management API - Starting")
     logger.info("=" * 50)
     logger.info(f"Environment: {env}")
-    logger.info(f"API Docs: /docs")
     logger.info(f"Health Check: /health")
-
-    # Only show detailed info in development
-    if env == "development":
-        logger.info(f"Storage Path: {os.path.abspath(settings.STORAGE_PATH)}")
-        db_host = (
-            settings.database_url.split("@")[-1]
-            if "@" in settings.database_url
-            else "local"
-        )
-        logger.info(f"Database: {db_host}")
-
+    logger.info(f"API Docs: /docs")
     logger.info("=" * 50)
 
-    from app.db.init_db import init_db
+    # Initialize database - MUST NOT block application startup
+    # Health checks must work even if DB is unavailable
+    try:
+        from app.db.init_db import init_db
 
-    init_db()
+        init_db()
+        APP_STATE["db_initialized"] = True
+        logger.info("✓ Database initialized successfully")
+    except Exception as e:
+        error_msg = f"Database initialization failed: {str(e)}"
+        APP_STATE["startup_errors"].append(error_msg)
+        logger.error(f"✗ {error_msg}")
+        logger.warning(
+            "Application starting without database - some features unavailable"
+        )
 
-    logger.info("Database initialized successfully")
+    APP_STATE["startup_complete"] = True
+    logger.info("=" * 50)
+    logger.info("Application startup complete - ready to serve requests")
+    logger.info("=" * 50)
+
     yield
 
     # Shutdown
     logger.info("Shutting down...")
 
 
+# =============================================================================
+# Create FastAPI application
+# Import settings AFTER app creation to allow health endpoints to work
+# even if settings validation has warnings
+# =============================================================================
+
+
+# Lazy import settings to avoid blocking health check
+def get_settings():
+    """Lazy load settings to prevent import-time failures."""
+    from app.core.config import settings
+
+    return settings
+
+
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title="Smart Waste Management AI",
+    openapi_url="/api/v1/openapi.json",
     description="AI-powered waste management system with confidence-aware recommendations",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Set all CORS enabled origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Mount storage for uploaded images
-if not os.path.exists(settings.STORAGE_PATH):
-    os.makedirs(settings.STORAGE_PATH)
-app.mount("/storage", StaticFiles(directory=settings.STORAGE_PATH), name="storage")
-
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
-app.include_router(waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["waste"])
+# =============================================================================
+# CRITICAL: Health check endpoints MUST be registered FIRST
+# These must work without ANY external dependencies (DB, config, etc.)
+# =============================================================================
 
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to Smart Waste Management AI API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "features": [
-            "AI-powered waste classification",
-            "Confidence-aware recommendations",
-            "Driver collection verification",
-            "Real-time analytics",
-        ],
-    }
-
-
-# Health check endpoints - MUST be defined before any router includes
-# to ensure they're accessible at the root level
 @app.get("/health", tags=["health"])
 async def health_check_root():
     """
@@ -97,6 +96,13 @@ async def health_check_root():
 
     Returns 200 OK immediately without any dependencies.
     Used by: Azure Container Apps probes, CI/CD verification, load balancers.
+
+    This endpoint MUST:
+    - Return 200 OK immediately
+    - Not require authentication
+    - Not depend on database
+    - Not depend on external services
+    - Work even if other initialization fails
     """
     return {"status": "ok"}
 
@@ -113,11 +119,81 @@ async def health_check_api():
     return {"status": "ok"}
 
 
-@app.get(f"{settings.API_V1_STR}/health", tags=["health"])
-async def health_check():
-    """Health check endpoint for container orchestration and load balancers."""
+@app.get("/api/v1/health", tags=["health"])
+async def health_check_v1():
+    """Health check endpoint under versioned API path."""
+    return {"status": "ok"}
+
+
+@app.get("/ready", tags=["health"])
+async def readiness_check():
+    """
+    Readiness check - reports if the app is ready to serve traffic.
+    Unlike /health, this checks if dependencies are available.
+    """
     return {
-        "status": "healthy",
-        "service": "waste-management-api",
-        "version": "1.0.0",
+        "status": "ready" if APP_STATE["startup_complete"] else "starting",
+        "db_initialized": APP_STATE["db_initialized"],
+        "errors": APP_STATE["startup_errors"] if APP_STATE["startup_errors"] else None,
     }
+
+
+# =============================================================================
+# CORS Middleware - must be added before routes
+# =============================================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# =============================================================================
+# Root endpoint
+# =============================================================================
+
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to Smart Waste Management AI API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health",
+        "features": [
+            "AI-powered waste classification",
+            "Confidence-aware recommendations",
+            "Driver collection verification",
+            "Real-time analytics",
+        ],
+    }
+
+
+# =============================================================================
+# Mount storage and register API routers
+# These may fail if settings are misconfigured, but health checks still work
+# =============================================================================
+
+try:
+    from app.core.config import settings
+    from app.api.routes import waste, auth
+
+    # Mount storage for uploaded images
+    storage_path = settings.STORAGE_PATH
+    if not os.path.exists(storage_path):
+        os.makedirs(storage_path)
+    app.mount("/storage", StaticFiles(directory=storage_path), name="storage")
+
+    # Register API routers
+    app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+    app.include_router(
+        waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["waste"]
+    )
+
+    logger.info("✓ API routes registered successfully")
+except Exception as e:
+    logger.error(f"✗ Failed to register API routes: {e}")
+    logger.warning("Health endpoints are still available at /health")

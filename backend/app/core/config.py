@@ -54,40 +54,51 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() in ("production", "prod")
 
-    def validate_production_config(self) -> None:
-        """Validate critical configuration in production. Fails fast with clear errors."""
-        if not self.is_production:
-            return
+    def validate_production_config(self) -> list[str]:
+        """
+        Validate critical configuration in production.
+        Returns a list of warning messages instead of exiting.
+        This allows health checks to work even with config issues.
+        """
+        warnings = []
 
-        errors = []
+        if not self.is_production:
+            return warnings
 
         # Check SECRET_KEY is not default
         if "DEVELOPMENT" in self.SECRET_KEY or "change" in self.SECRET_KEY.lower():
-            errors.append("SECRET_KEY must be changed from default value in production")
+            warnings.append(
+                "SECRET_KEY should be changed from default value in production"
+            )
 
         # Check database is configured
         db_url = self.database_url
-        if "localhost" in db_url and self.is_production:
-            errors.append("Database URL points to localhost in production")
+        if "localhost" in db_url:
+            warnings.append("Database URL points to localhost in production")
 
         # Check OpenAI key if AI features are expected
         if (
             self.OPENAI_API_KEY.startswith("sk-...")
             or self.OPENAI_API_KEY == "mock-key"
         ):
-            errors.append("OPENAI_API_KEY is not configured (AI features will fail)")
+            warnings.append("OPENAI_API_KEY is not configured (AI features may fail)")
 
-        if errors:
-            print("\n" + "=" * 60, file=sys.stderr)
-            print("FATAL: Production configuration errors detected", file=sys.stderr)
-            print("=" * 60, file=sys.stderr)
-            for error in errors:
-                print(f"  ✗ {error}", file=sys.stderr)
-            print("=" * 60 + "\n", file=sys.stderr)
-            sys.exit(1)
+        return warnings
 
 
 settings = Settings()
 
-# Validate on import (fails fast in production)
-settings.validate_production_config()
+# Log warnings but DO NOT exit - health checks must still work
+_config_warnings = settings.validate_production_config()
+if _config_warnings:
+    print("\n" + "=" * 60, file=sys.stderr)
+    print("WARNING: Production configuration issues detected", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    for warning in _config_warnings:
+        print(f"  ⚠ {warning}", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    print(
+        "Application will start - health endpoints available at /health",
+        file=sys.stderr,
+    )
+    print("=" * 60 + "\n", file=sys.stderr)

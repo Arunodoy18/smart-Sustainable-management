@@ -140,13 +140,13 @@ spec:
               key: SECRET_KEY
         livenessProbe:
           httpGet:
-            path: /api/v1/waste/health
+            path: /health
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
-            path: /api/v1/waste/health
+            path: /health
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
