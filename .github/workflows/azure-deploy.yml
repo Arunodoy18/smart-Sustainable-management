@@ -28,11 +28,12 @@ jobs:
         run: |
           cd backend
           pip install -r requirements.txt
+          pip install black
 
       - name: Format with Black (auto-fix)
         run: |
           cd backend
-          black . --check || black .
+          python -m black . --check || python -m black .
 
       - name: Run backend tests
         run: |
