@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_RESOURCE_GROUP: smart-waste-rg
-  BACKEND_APP_NAME: smart-waste-backend
-  FRONTEND_APP_NAME: smart-waste-frontend
-  REGISTRY_NAME: smartwasteregistry
+  AZURE_RESOURCE_GROUP: hackathon-waste-rg
+  BACKEND_APP_NAME: backend
+  FRONTEND_APP_NAME: frontend
+  REGISTRY_NAME: wastemanagementacr
 
 jobs:
   lint-and-test:
