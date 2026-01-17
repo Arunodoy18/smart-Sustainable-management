@@ -81,14 +81,28 @@ docker-compose up -d
 
 # Access the application
 # Frontend: http://localhost:3000
-# Backend API: http://localhost:8000/docs
-# Database Admin: http://localhost:8080
+# Backend API: http://localhost:8080/docs
+# Health Check: http://localhost:8080/health
 ```
 
-### Option 2: Local Development
+### Option 2: Local Development (Fastest)
 
 **Backend Setup:**
+```bash
+# Start backend in one command (automatically handles venv)
+.\start-backend.ps1
+```
 
+**Frontend Setup:**
+```bash
+# Start frontend in one command
+.\start-frontend.ps1
+```
+
+**Manual Setup (Step-by-Step):**
+If you prefer manual control:
+
+**Backend:**
 ```bash
 cd backend
 
@@ -107,12 +121,11 @@ copy ..\\.env.example .env
 # Initialize database
 python -m app.db.init_db
 
-# Run backend
-uvicorn app.main:app --reload --port 8000
+# Run backend (port 8080 for Azure compatibility)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
-**Frontend Setup:**
-
+**Frontend:**
 ```bash
 cd frontend
 
@@ -121,6 +134,23 @@ npm install
 
 # Run development server
 npm run dev
+```
+
+### Environment Variables
+
+**Backend (.env):**
+```bash
+ENVIRONMENT=development
+SECRET_KEY=your-secret-key
+DATABASE_URL=postgresql://user:pass@localhost:5432/waste_management
+OPENAI_API_KEY=sk-your-key
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+**Frontend (.env):**
+```bash
+VITE_API_URL=http://localhost:8080/api/v1
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 **Database Setup:**

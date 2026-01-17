@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authAPI } from '../api';
+import { authAPI, googleAuthAPI } from '../api';
 
 const AuthContext = createContext({});
 
@@ -41,10 +41,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithGoogle = async (googleToken, role = 'user') => {
+    try {
+      const { access_token } = await googleAuthAPI.login(googleToken, role);
+      localStorage.setItem('token', access_token);
+      const userData = await authAPI.getMe();
+      setUser(userData);
+      setProfile(userData);
+      return userData;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      throw error;
+    }
+  };
+
   const signup = async (userData) => {
     try {
       const user = await authAPI.signup(userData);
-      // Automatically login after signup
       await login(userData.email, userData.password);
       return user;
     } catch (error) {
@@ -64,6 +77,7 @@ export const AuthProvider = ({ children }) => {
     profile,
     loading,
     login,
+    loginWithGoogle,
     signup,
     signOut,
   };

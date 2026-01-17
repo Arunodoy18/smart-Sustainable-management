@@ -7,6 +7,8 @@ import AnalyticsPage from './pages/AnalyticsPage';
 import DriverPage from './pages/DriverPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
 import { useEffect, Suspense } from 'react';
 import { wasteAPI } from './api';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -137,17 +139,19 @@ function App() {
         <Navigation />
         
         <main className="flex-grow max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 w-full">
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingSpinner />}>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignupPage />} />
-                
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                } />
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/welcome" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/signup" element={<SignupPage />} />
+                  
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <HomePage />
+                    </ProtectedRoute>
+                  } />
                 <Route path="/history" element={
                   <ProtectedRoute>
                     <HistoryPage />

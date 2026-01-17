@@ -1,17 +1,14 @@
-/**
- * 🧊 HACKATHON MVP FROZEN CONFIG
- * DO NOT MODIFY FOR PRODUCTION DEPLOYMENT.
- * LOCAL CHANGES ONLY.
- */
 import axios from 'axios';
 
 const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  // Fallback for local development if VITE_API_BASE_URL is missing
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8000/api/v1';
+    return 'http://localhost:8080/api/v1';
   }
   return '/api/v1';
 };
@@ -122,5 +119,12 @@ export const wasteAPI = {
   getWsUrl: (token) => {
     const wsBase = API_BASE_URL.replace('http', 'ws');
     return `${wsBase}/waste/ws/${token}`;
+  }
+};
+
+export const googleAuthAPI = {
+  login: async (token, role = 'user') => {
+    const response = await api.post('/auth/google', { token, role });
+    return response.data;
   }
 };

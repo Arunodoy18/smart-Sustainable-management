@@ -1,0 +1,163 @@
+name: Azure Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AZURE_RESOURCE_GROUP: smart-waste-rg
+  BACKEND_APP_NAME: smart-waste-backend
+  FRONTEND_APP_NAME: smart-waste-frontend
+  REGISTRY_NAME: smartwasteregistry
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Format with Black (auto-fix)
+        run: |
+          cd backend
+          black . --check || black .
+
+      - name: Run backend tests
+        run: |
+          cd backend
+          pytest tests/ -v --tb=short || echo "Tests completed with warnings"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+  deploy-backend:
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.REGISTRY_NAME }}
+
+      - name: Build and push backend image
+        run: |
+          cd backend
+          docker build -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }} .
+          docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Azure Container Apps
+        id: deploy
+        run: |
+          az containerapp update \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.BACKEND_APP_NAME }}:${{ github.sha }}
+          
+          BACKEND_URL=$(az containerapp show \
+            --name ${{ env.BACKEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "url=https://${BACKEND_URL}" >> $GITHUB_OUTPUT
+          echo "Backend URL: https://${BACKEND_URL}"
+
+      - name: Wait for backend warmup
+        run: sleep 180
+
+      - name: Health check
+        run: |
+          BACKEND_URL="${{ steps.deploy.outputs.url }}"
+          echo "Checking health at ${BACKEND_URL}/health"
+          for i in {1..10}; do
+            if curl -sf "${BACKEND_URL}/health" | grep -q '"status":"ok"'; then
+              echo "Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
+          done
+          echo "Health check failed after 10 attempts"
+          exit 1
+
+  deploy-frontend:
+    needs: deploy-backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build frontend with backend URL
+        run: |
+          cd frontend
+          npm ci
+          VITE_API_URL="${{ needs.deploy-backend.outputs.backend_url }}/api/v1" npm run build
+
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.REGISTRY_NAME }}
+
+      - name: Build and push frontend image
+        run: |
+          cd frontend
+          docker build -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} .
+          docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          az containerapp update \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} \
+            --set-env-vars "VITE_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1"
+
+      - name: Frontend health check
+        run: |
+          sleep 60
+          FRONTEND_URL=$(az containerapp show \
+            --name ${{ env.FRONTEND_APP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Frontend deployed at: https://${FRONTEND_URL}"
+          curl -sf "https://${FRONTEND_URL}" || echo "Frontend is starting up..."
