@@ -186,8 +186,9 @@ jobs:
         run: |
           cd frontend
           npm ci
-          echo "Building with VITE_API_URL=${{ needs.deploy-backend.outputs.backend_url }}/api/v1"
-          VITE_API_URL="${{ needs.deploy-backend.outputs.backend_url }}/api/v1" npm run build
+          BACKEND_URL="${{ needs.deploy-backend.outputs.backend_url }}"
+          echo "Building frontend with backend URL: ${BACKEND_URL}/api/v1"
+          VITE_API_URL="${BACKEND_URL}/api/v1" npm run build
 
       - name: Login to Azure Container Registry
         run: |
@@ -196,7 +197,10 @@ jobs:
       - name: Build and push frontend image
         run: |
           cd frontend
-          docker build -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} .
+          BACKEND_URL="${{ needs.deploy-backend.outputs.backend_url }}"
+          docker build \
+            --build-arg VITE_API_URL="${BACKEND_URL}/api/v1" \
+            -t ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }} .
           docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.FRONTEND_APP_NAME }}:${{ github.sha }}
 
       - name: Deploy to Azure Container Apps
