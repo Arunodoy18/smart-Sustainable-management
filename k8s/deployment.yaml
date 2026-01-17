@@ -111,7 +111,7 @@ spec:
       - name: backend
         image: your-registry/waste-backend:latest
         ports:
-        - containerPort: 8000
+        - containerPort: 8080
         env:
         - name: POSTGRES_SERVER
           valueFrom:
@@ -141,13 +141,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8000
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /health
-            port: 8000
+            port: 8080
           initialDelaySeconds: 10
           periodSeconds: 5
 ---
@@ -160,8 +160,8 @@ spec:
   selector:
     app: backend
   ports:
-  - port: 8000
-    targetPort: 8000
+  - port: 8080
+    targetPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment

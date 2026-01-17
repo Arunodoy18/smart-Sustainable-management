@@ -11,8 +11,8 @@ function getApiUrl(): string {
     // Use relative path to leverage Next.js rewrites (works in all environments)
     return '';
   }
-  // Server-side: use env var or default
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  // Server-side: use env var or default (port 8080 for Azure Container Apps)
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 }
 
 function getWsUrl(): string {
@@ -24,7 +24,7 @@ function getWsUrl(): string {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${window.location.host}`;
   }
-  return 'ws://localhost:8000';
+  return 'ws://localhost:8080';
 }
 
 export const config = {

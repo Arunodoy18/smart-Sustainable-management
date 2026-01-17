@@ -82,7 +82,7 @@ az containerapp create `
     --registry-server $server `
     --registry-username $creds.username `
     --registry-password $creds.passwords[0].value `
-    --target-port 8000 `
+    --target-port 8080 `
     --ingress external `
     --min-replicas 1 `
     --max-replicas 2 `

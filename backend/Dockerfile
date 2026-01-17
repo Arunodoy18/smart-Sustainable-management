@@ -22,7 +22,7 @@ RUN addgroup --system --gid 1001 appgroup \
 
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8080
 
-# Production command without --reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Production command without --reload - using port 8080 for Azure Container Apps
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

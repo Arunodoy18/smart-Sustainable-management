@@ -189,7 +189,7 @@ if (!$backendExists) {
         --resource-group $ResourceGroup `
         --environment $Environment `
         --image ${registryServer}/waste-backend:latest `
-        --target-port 8000 `
+        --target-port 8080 `
         --ingress external `
         --registry-server $registryServer `
         --registry-username $registryUsername `

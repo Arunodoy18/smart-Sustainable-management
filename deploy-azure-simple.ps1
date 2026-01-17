@@ -148,7 +148,7 @@ az containerapp create `
     --registry-server $acrServer `
     --registry-username $acrCreds.username `
     --registry-password $acrCreds.passwords[0].value `
-    --target-port 8000 `
+    --target-port 8080 `
     --ingress external `
     --min-replicas 1 `
     --max-replicas 3 `
