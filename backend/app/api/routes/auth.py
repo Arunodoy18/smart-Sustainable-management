@@ -16,6 +16,7 @@ router = APIRouter()
 
 class LoginRequest(BaseModel):
     """JSON login request body"""
+
     email: EmailStr
     password: str
 
@@ -54,9 +55,7 @@ def login_access_token(
 
 
 @router.post("/login", response_model=Token)
-def login_json(
-    *, db: Session = Depends(deps.get_db), login_data: LoginRequest
-) -> Any:
+def login_json(*, db: Session = Depends(deps.get_db), login_data: LoginRequest) -> Any:
     """
     JSON login endpoint for frontend compatibility.
     Accepts JSON body with email and password.
