@@ -116,3 +116,15 @@ async def test_root_endpoint():
     data = response.json()
     assert "message" in data
     assert "version" in data
+
+
+@pytest.mark.asyncio
+async def test_google_auth_endpoint_exists():
+    """Verify Google OAuth endpoint exists and validates input."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.post("/api/v1/auth/google", json={})
+
+    # Should return 422 (validation error) not 404 (not found)
+    assert response.status_code != 404, "Google auth endpoint not found"
+    assert response.status_code in [422, 400, 500]

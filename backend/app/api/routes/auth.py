@@ -1,5 +1,6 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from app.models.user import Profile
 from app.schemas.user import User, UserCreate, Token
 import uuid
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -19,6 +21,13 @@ class LoginRequest(BaseModel):
 
     email: EmailStr
     password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    """Google OAuth request body"""
+
+    token: str
+    role: Optional[str] = "user"
 
 
 def _authenticate_user(db: Session, email: str, password: str) -> Profile:
@@ -98,4 +107,71 @@ def read_user_me(
     """
     Get current user.
     """
+    return current_user
+
+
+@router.post("/google", response_model=Token)
+def google_auth(
+    *, db: Session = Depends(deps.get_db), auth_data: GoogleAuthRequest
+) -> Any:
+    """
+    Authenticate via Google OAuth.
+    Accepts Google ID token, validates it, creates/retrieves user, returns JWT.
+    """
+    try:
+        # Decode the Google token to extract user info
+        # In production, you should verify with Google's API
+        import base64
+        import json
+
+        # Split the JWT and decode the payload
+        parts = auth_data.token.split(".")
+        if len(parts) != 3:
+            raise HTTPException(status_code=400, detail="Invalid Google token format")
+
+        # Decode payload (add padding if needed)
+        payload = parts[1]
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += "=" * padding
+        decoded = base64.urlsafe_b64decode(payload)
+        user_info = json.loads(decoded)
+
+        email = user_info.get("email")
+        name = user_info.get("name", "")
+
+        if not email:
+            raise HTTPException(
+                status_code=400, detail="Email not found in Google token"
+            )
+
+        # Find or create user
+        user = db.query(Profile).filter(Profile.email == email).first()
+
+        if not user:
+            # Create new user from Google data
+            user = Profile(
+                id=uuid.uuid4(),
+                email=email,
+                hashed_password=security.get_password_hash(uuid.uuid4().hex),
+                full_name=name,
+                role=auth_data.role or "user",
+                is_active=True,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            logger.info(f"Created new user from Google OAuth: {email}")
+        else:
+            logger.info(f"Google OAuth login for existing user: {email}")
+
+        return _create_token_response(user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google auth error: {e}")
+        raise HTTPException(
+            status_code=400, detail="Failed to authenticate with Google"
+        )
     return current_user

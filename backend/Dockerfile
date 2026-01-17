@@ -24,5 +24,9 @@ USER appuser
 
 EXPOSE 8080
 
-# Production command without --reload - using port 8080 for Azure Container Apps
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl --fail http://localhost:8080/health || exit 1
+
+# Production command - port 8080 for Azure Container Apps
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -36,7 +36,7 @@ api.interceptors.response.use(
     if (!error.response) {
       // Network error (backend down)
       console.error('Network Error: Backend might be down', error);
-      throw new Error('Could not connect to the backend server. Please ensure the backend is running on http://localhost:8000');
+      throw new Error('Could not connect to the backend server. Please check your connection or try again later.');
     }
     return Promise.reject(error);
   }
