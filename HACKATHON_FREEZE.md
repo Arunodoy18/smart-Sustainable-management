@@ -29,10 +29,8 @@ The local environment is where active development and **post-submission enhancem
 The following improvements were added to the local environment *after* the initial MVP submission:
 1. **Premium UI Skin**: Advanced CSS variables and glassmorphism styling.
 2. **Defensive Loading States**: Improved UX for slow network connections.
-  3. **One-Command Startup Scripts**: Added `start-backend.ps1` and `start-frontend.ps1` for 1-click contributor onboarding.
-  4. **Enhanced Startup Logs**: Clearer feedback when services start locally.
-  5. **Local Stability Patches**: Refined routing and fallback logic for `localhost`.
-
+3. **Enhanced Startup Logs**: Clearer feedback when services start locally.
+4. **Local Stability Patches**: Refined routing and fallback logic for `localhost`.
 
 ---
 

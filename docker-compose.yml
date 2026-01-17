@@ -1,3 +1,5 @@
+# 🧊 HACKATHON MVP FREEZE: DO NOT MODIFY CORE SERVICES
+# This configuration is part of the submitted MVP.
 version: '3.8'
 
 services:
@@ -35,37 +37,35 @@ services:
       SECRET_KEY: "production-secret-key-change-this-in-real-deployment"
       OPENAI_API_KEY: "sk-mock-key-for-demo"
     ports:
-      - "8080:8080"
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - waste-network
 
-  # Next.js Frontend
+  # React Frontend
   frontend:
     build:
-      context: ./web
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: waste-management-frontend
-    environment:
-      API_URL: http://backend:8080
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
     networks:
       - waste-network
 
-  # Adminer (Database Management UI) - using port 8081 to avoid conflict with backend
+  # Adminer (Database Management UI)
   adminer:
     image: adminer:latest
     container_name: waste-management-adminer
     ports:
-      - "8081:8080"
+      - "8080:8080"
     depends_on:
       - postgres
     networks:

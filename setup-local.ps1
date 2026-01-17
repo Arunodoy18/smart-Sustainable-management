@@ -75,7 +75,7 @@ Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Frontend Setup
-Push-Location web
+Push-Location frontend
 
 Write-Host "Installing frontend dependencies..." -ForegroundColor Yellow
 npm install --silent
@@ -97,7 +97,7 @@ Write-Host "  .\venv\Scripts\Activate.ps1" -ForegroundColor White
 Write-Host "  uvicorn app.main:app --reload" -ForegroundColor White
 Write-Host ""
 Write-Host "Terminal 2 - Frontend:" -ForegroundColor Yellow
-Write-Host "  cd web" -ForegroundColor White
+Write-Host "  cd frontend" -ForegroundColor White
 Write-Host "  npm run dev" -ForegroundColor White
 Write-Host ""
 Write-Host "Or use the start script:" -ForegroundColor Cyan
