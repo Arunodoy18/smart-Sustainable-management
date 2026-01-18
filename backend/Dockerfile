@@ -20,13 +20,19 @@ RUN addgroup --system --gid 1001 appgroup \
     && adduser --system --uid 1001 --ingroup appgroup appuser \
     && chown -R appuser:appgroup /app
 
+# Make start script executable
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 USER appuser
 
-EXPOSE 8080
+# Default port (can be overridden by environment variable)
+ENV PORT=8000
+EXPOSE $PORT
 
 # Health check for container orchestration
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl --fail http://localhost:8080/health || exit 1
+    CMD curl --fail http://localhost:${PORT:-8000}/health || exit 1
 
-# Production command - port 8080 for Azure Container Apps
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Use start script for flexible port configuration
+CMD ["/app/start.sh"]

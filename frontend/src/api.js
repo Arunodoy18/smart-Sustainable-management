@@ -1,19 +1,30 @@
 import axios from 'axios';
 
+/**
+ * Get API base URL with proper fallback logic
+ * Priority:
+ * 1. VITE_API_URL (for production deployments like Netlify)
+ * 2. VITE_API_BASE_URL (for local development override)
+ * 3. Localhost default for development (http://localhost:8000/api/v1)
+ */
 const getBaseUrl = () => {
+  // Production or explicit override
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
+  
+  // Development override
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8080/api/v1';
-  }
-  return '/api/v1';
+  
+  // Default localhost for development
+  return 'http://localhost:8000/api/v1';
 };
 
 const API_BASE_URL = getBaseUrl();
+
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 // Create axios instance with default config
 const api = axios.create({

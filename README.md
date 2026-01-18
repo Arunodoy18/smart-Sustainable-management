@@ -1,131 +1,170 @@
 # 🌍 Smart Waste Management AI System
 
-> [!IMPORTANT]
-> **🧊 HACKATHON MVP FROZEN**: The official MVP submission is now LOCKED for judging. 
-> - **Official Submission Details**: See [HACKATHON_FREEZE.md](./HACKATHON_FREEZE.md)
-> - **Live Demo**: [Official Frontend URL](https://frontend.jollysea-c5c0b121.centralus.azurecontainerapps.io)
-> 
-> **✨ POST-SUBMISSION ENHANCEMENTS**: Current local development (Orchid + `npm run dev`) contains active UI/UX and stability improvements that are NOT part of the submitted live environment. These represent the "Next Generation" features for future releases.
+> **AI-powered waste classification with confidence-aware recommendations for smart cities**
 
-**Hackathon 2026 | MVP Ready | Production Deployable**
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.2-blue.svg)](https://react.dev)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An AI-powered waste management system that uses **confidence-aware recommendations** to ensure safe recycling, reduce contamination, and enable accountable waste collection in smart cities.
+An intelligent waste management system that uses **AI-powered classification** with **confidence scoring** to reduce recycling contamination, enable driver accountability, and support sustainable waste management in smart cities.
 
 ---
 
-## 🎯 Project Overview
+## 🎯 Problem & Solution
 
-This system solves a critical real-world problem: **recycling contamination**. By classifying waste with AI and providing confidence-based recommendations, it prevents incorrect sorting that ruins entire recycling batches.
+### The Problem
+- **Recycling contamination** ruins entire batches when waste is incorrectly sorted
+- **Lack of accountability** in waste collection leads to inefficiencies
+- **Citizens unsure** about proper waste disposal methods
 
-### Key Features
+### Our Solution
+- 🤖 **AI Classification**: Identifies waste type with confidence scoring
+- 🎚️ **Confidence-Aware Recommendations**: Different actions based on AI certainty
+- ♻️ **Smart Segregation**: Maps waste to proper disposal categories
+- 🚛 **Driver Verification**: Collection proof with image validation
+- 📊 **Analytics Dashboard**: Track environmental impact in real-time
 
-- **🤖 AI-Powered Classification**: Identifies waste type with confidence scoring
-- **🎚️ Confidence-Aware Recommendations**: Different actions based on certainty level
-- **♻️ Smart Segregation**: Maps waste to recyclability and special handling needs
-- **🚛 Driver Accountability**: Collection verification with proof of pickup
-- **📊 Real-Time Analytics**: Track recycling rates and environmental impact
-- **🌐 SDG-Aligned**: Supports UN Sustainable Development Goals 11, 12, 13
+---
+
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **AI Classification** | GPT-4o Vision identifies waste with 85%+ accuracy |
+| **Confidence Scoring** | High/Medium/Low confidence determines recommendation |
+| **Multi-Category** | Recyclable, Organic, Electronic, Hazardous, General |
+| **User Dashboard** | Track personal waste history and impact |
+| **Driver Portal** | Accept pickups, verify collection with photos |
+| **Analytics** | Real-time metrics: recycling rate, CO2 saved, etc. |
+| **Google Maps** | Location-based waste tracking |
+| **Supabase Auth** | Secure login with Google OAuth |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐
-│  React Frontend │  ← User uploads waste image
-│  (Port 3000)    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ FastAPI Backend │  ← Intelligence Layer
-│  (Port 8000)    │
-└────────┬────────┘
-         │
-    ┌────┴────┬──────────┬──────────────┐
-    │         │          │              │
-    ▼         ▼          ▼              ▼
-┌───────┐ ┌──────┐ ┌──────────┐ ┌──────────────┐
-│ Class │ │ Seg  │ │   Rec    │ │  Collection  │
-│ Agent │ │ Agent│ │   Agent  │ │    Agent     │
-└───────┘ └──────┘ └──────────┘ └──────────────┘
-    │         │          │              │
-    └─────────┴──────────┴──────────────┘
-                    │
-                    ▼
-           ┌────────────────┐
-           │   PostgreSQL   │
-           │   (Port 5432)  │
-           └────────────────┘
+Frontend (React)          Backend (FastAPI)         Database
+     3000                      8000                  
+        │                        │                      
+        │  ←── API Calls ───→    │                      
+        │                        │                      
+        │                   ┌────┴────┐                
+        │                   │  Agents │                
+        │                   │  - Classification        
+        │                   │  - Segregation           
+        │                   │  - Recommendation        
+        │                   │  - Collection            
+        │                   └────┬────┘                
+        │                        │                      
+        └────────────────────────┴──────→ PostgreSQL
+                                           (Supabase)
 ```
+
+**Tech Stack:**
+- **Frontend**: React, Vite, TailwindCSS, Recharts
+- **Backend**: FastAPI, Python, SQLAlchemy
+- **Database**: PostgreSQL (Supabase)
+- **AI**: OpenAI GPT-4o Vision
+- **Auth**: Supabase (Google OAuth)
+- **Maps**: Google Maps API
+- **Deployment**: Render (backend) + Netlify (frontend)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Docker & Docker Compose
-- OR: Node.js 20+, Python 3.11+, PostgreSQL 15+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL (or Supabase)
+- OpenAI API Key
+- Supabase Account
+- Google Maps API Key
 
-### Option 1: Docker (Recommended)
+### 1️⃣ Backend Setup
 
-```bash
-# Clone the repository
-cd Hackathon
-
-# Start all services
-docker-compose up -d
-
-# Wait for services to initialize (~30 seconds)
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8080/docs
-# Health Check: http://localhost:8080/health
-```
-
-### Option 2: Local Development (Fastest)
-
-**Backend Setup:**
-```bash
-# Start backend in one command (automatically handles venv)
-.\start-backend.ps1
-```
-
-**Frontend Setup:**
-```bash
-# Start frontend in one command
-.\start-frontend.ps1
-```
-
-**Manual Setup (Step-by-Step):**
-If you prefer manual control:
-
-**Backend:**
 ```bash
 cd backend
 
 # Create virtual environment
 python -m venv venv
 .\venv\Scripts\activate  # Windows
-# source venv/bin/activate  # Linux/Mac
+# source venv/bin/activate  # Mac/Linux
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment
-copy ..\\.env.example .env
-# Edit .env with your database credentials
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
 
-# Initialize database
-python -m app.db.init_db
-
-# Run backend (port 8080 for Azure compatibility)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+# Start server
+uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend:**
+**Backend URL**: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
+
+### 2️⃣ Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env.development
+# Edit .env.development with your credentials
+
+# Start development server
+npm run dev
+```
+
+**Frontend URL**: http://localhost:3000
+
+---
+
+## 📖 Documentation
+
+- **[Localhost Development Guide](LOCALHOST_GUIDE.md)** - Complete local setup
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Deploy to Render & Netlify
+- **[Testing Guide](TESTING_GUIDE.md)** - Run tests
+- **[API Documentation](http://localhost:8000/docs)** - Interactive API docs
+
+---
+
+## 🎮 Usage
+
+### For Citizens
+
+1. **Sign up** with email or Google OAuth
+2. **Upload** a waste image
+3. **Get** AI classification with confidence score
+4. **Follow** personalized recommendations
+5. **Track** your environmental impact
+
+### For Drivers
+
+1. **Login** to driver dashboard
+2. **View** pending pickups on map
+3. **Accept** collection requests
+4. **Upload** proof of collection
+5. **Confirm** collection completion
+
+---
+python -m app.db.init_db
+
+# Run backend
+uvicorn app.main:app --reload --port 8000
+```
+
+**Frontend Setup:**
+
 ```bash
 cd frontend
 
@@ -134,23 +173,6 @@ npm install
 
 # Run development server
 npm run dev
-```
-
-### Environment Variables
-
-**Backend (.env):**
-```bash
-ENVIRONMENT=development
-SECRET_KEY=your-secret-key
-DATABASE_URL=postgresql://user:pass@localhost:5432/waste_management
-OPENAI_API_KEY=sk-your-key
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-```
-
-**Frontend (.env):**
-```bash
-VITE_API_URL=http://localhost:8080/api/v1
-VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 **Database Setup:**

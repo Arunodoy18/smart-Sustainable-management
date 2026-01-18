@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Smart Waste Management AI"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
+    
+    # Server Configuration
+    PORT: int = 8000  # Port for uvicorn server (Render uses this)
+    HOST: str = "0.0.0.0"  # Bind to all interfaces for containers/cloud
 
     # Security
     SECRET_KEY: str = "DEVELOPMENT_SECRET_KEY_CHANGE_IN_PRODUCTION"
@@ -27,16 +31,15 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: Optional[str] = None
     SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
 
-    # Vector DB
-    QDRANT_HOST: str = "localhost"
-    QDRANT_PORT: int = 6333
-
     # AI
     OPENAI_API_KEY: str = "sk-..."
     MODEL_NAME: str = "gpt-4o"
 
     # Storage
     STORAGE_PATH: str = "./storage"
+    
+    # Frontend URL for CORS (optional, for production)
+    FRONTEND_URL: Optional[str] = None
 
     model_config = SettingsConfigDict(
         case_sensitive=True, env_file=".env", extra="ignore"

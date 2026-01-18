@@ -98,7 +98,7 @@ async def health_check_root():
     Root-level health check endpoint.
 
     Returns 200 OK immediately without any dependencies.
-    Used by: Azure Container Apps probes, CI/CD verification, load balancers.
+    Used by: Health monitoring, CI/CD verification, load balancers, Render.
 
     This endpoint MUST:
     - Return 200 OK immediately
@@ -143,11 +143,39 @@ async def readiness_check():
 
 # =============================================================================
 # CORS Middleware - must be added before routes
+# Localhost-first with production-ready config
 # =============================================================================
+
+# Get settings for CORS configuration
+try:
+    _settings = get_settings()
+    cors_origins = os.getenv("BACKEND_CORS_ORIGINS", "").strip()
+    if cors_origins:
+        # Parse JSON array or comma-separated string
+        import json
+        try:
+            allowed_origins = json.loads(cors_origins)
+        except:
+            allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+    else:
+        # Default localhost origins for development
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ]
+        # Add production origin if available
+        frontend_url = os.getenv("FRONTEND_URL")
+        if frontend_url and _settings.is_production:
+            allowed_origins.append(frontend_url)
+except Exception as e:
+    logger.warning(f"Error loading CORS settings: {e}")
+    allowed_origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
