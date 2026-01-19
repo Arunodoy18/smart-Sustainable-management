@@ -201,8 +201,8 @@ function App() {
                 </div>
                 
                 <div className="text-center md:text-right space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-[0.3em]">Local Dev Environment</p>
-                  <p className="text-[10px] text-emerald-500/50 font-mono italic">v2.1.0-orchid-stable</p>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.3em]">Smart Waste AI System</p>
+                  <p className="text-[10px] text-emerald-500/70 font-mono">Powered by AI • Real-time Analytics</p>
                 </div>
               </div>
               

@@ -4,6 +4,9 @@ import os
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from fastapi import Request, status
+from fastapi.responses import JSONResponse
+import traceback
 
 # =============================================================================
 # CRITICAL: Health check must be available IMMEDIATELY on startup
@@ -183,6 +186,21 @@ app.add_middleware(
 
 
 # =============================================================================
+# Global exception handler to catch all errors
+# =============================================================================
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and log them."""
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(f"Request: {request.method} {request.url}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"Internal server error: {str(exc)}"},
+    )
+
+
+# =============================================================================
 # Root endpoint
 # =============================================================================
 
@@ -218,8 +236,9 @@ try:
         os.makedirs(storage_path)
     app.mount("/storage", StaticFiles(directory=storage_path), name="storage")
 
-    # Register API routers
+    # Register API routers - both versioned and unversioned paths for compatibility
     app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+    app.include_router(auth.router, prefix="/auth", tags=["auth"])  # Unversioned for simplicity
     app.include_router(
         waste.router, prefix=f"{settings.API_V1_STR}/waste", tags=["waste"]
     )

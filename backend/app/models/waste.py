@@ -9,19 +9,17 @@ from sqlalchemy import (
     Text,
     Boolean,
 )
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import uuid
 from app.db.base_class import Base
 
 
 class WasteEntry(Base):
     __tablename__ = "waste_entries"
 
-    id = Column(
-        UUID(as_uuid=True), primary_key=True, server_default="uuid_generate_v4()"
-    )
-    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"))
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("profiles.id"))
     waste_type = Column(String, index=True)
     confidence_score = Column(Float)
     image_url = Column(String)
@@ -40,7 +38,7 @@ class WasteEntry(Base):
 
     # Status tracking
     status = Column(String, default="pending")
-    collected_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=True)
+    collected_by = Column(String, ForeignKey("profiles.id"), nullable=True)
     collection_image_url = Column(String, nullable=True)
     collected_at = Column(DateTime, nullable=True)
 

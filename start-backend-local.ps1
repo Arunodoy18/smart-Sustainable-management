@@ -51,12 +51,13 @@ Write-Host "=" * 60 -ForegroundColor Green
 Write-Host "🎉 Backend Starting!" -ForegroundColor Green
 Write-Host "=" * 60 -ForegroundColor Green
 Write-Host ""
-Write-Host "Backend:     http://localhost:8000" -ForegroundColor Cyan
-Write-Host "API Docs:    http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host "Health:      http://localhost:8000/health" -ForegroundColor Cyan
+Write-Host "Backend:     http://localhost:8080" -ForegroundColor Cyan
+Write-Host "API Docs:    http://localhost:8080/docs" -ForegroundColor Cyan
+Write-Host "Health:      http://localhost:8080/health" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Press Ctrl+C to stop" -ForegroundColor Yellow
 Write-Host ""
 
-# Start server
-uvicorn app.main:app --reload --port 8000
+# Start server on port 8080
+uvicorn app.main:app --reload --port 8080 --host 0.0.0.0
+

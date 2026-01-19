@@ -3,23 +3,17 @@ import axios from 'axios';
 /**
  * Get API base URL with proper fallback logic
  * Priority:
- * 1. VITE_API_URL (for production deployments like Netlify)
- * 2. VITE_API_BASE_URL (for local development override)
- * 3. Localhost default for development (http://localhost:8000/api/v1)
+ * 1. NEXT_PUBLIC_API_URL (Next.js environment variable)
+ * 2. Localhost default for development (http://localhost:8080/api/v1)
  */
 const getBaseUrl = () => {
-  // Production or explicit override
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // Development override
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL;
+  // Check for Next.js environment variable
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+    return `${process.env.NEXT_PUBLIC_API_URL}/api/v1`;
   }
   
   // Default localhost for development
-  return 'http://localhost:8000/api/v1';
+  return 'http://localhost:8080/api/v1';
 };
 
 const API_BASE_URL = getBaseUrl();

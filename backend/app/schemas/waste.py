@@ -2,7 +2,6 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from enum import Enum
 from datetime import datetime
-from uuid import UUID
 
 
 class WasteType(str, Enum):
@@ -15,7 +14,7 @@ class WasteType(str, Enum):
 
 class WasteClassificationInput(BaseModel):
     image_url: Optional[str] = None
-    user_id: Optional[UUID] = None
+    user_id: Optional[str] = None
     location: Optional[Dict[str, float]] = None
 
 
@@ -39,14 +38,14 @@ class WasteEntryCreate(BaseModel):
 
 class WasteEntryUpdate(BaseModel):
     status: str
-    collected_by: Optional[UUID] = None
+    collected_by: Optional[str] = None
     collection_image_url: Optional[str] = None
     collected_at: Optional[datetime] = None
 
 
 class WasteEntryResponse(BaseModel):
-    id: UUID
-    user_id: UUID
+    id: str
+    user_id: str
     waste_type: str
     confidence_score: float
     image_url: str
@@ -58,7 +57,7 @@ class WasteEntryResponse(BaseModel):
     collection_type: str
     impact_note: str
     status: str
-    collected_by: Optional[UUID] = None
+    collected_by: Optional[str] = None
     collection_image_url: Optional[str] = None
     collected_at: Optional[datetime] = None
     created_at: datetime

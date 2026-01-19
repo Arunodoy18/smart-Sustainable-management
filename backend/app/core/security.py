@@ -1,10 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt
-from passlib.context import CryptContext
+import hashlib
 from app.core.config import settings
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def create_access_token(
@@ -24,8 +22,17 @@ def create_access_token(
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify a password against its hash using SHA-256 with salt."""
+    if ':' not in hashed_password:
+        return False
+    salt, stored_hash = hashed_password.split(':', 1)
+    computed_hash = hashlib.sha256((salt + plain_password).encode()).hexdigest()
+    return computed_hash == stored_hash
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash a password using SHA-256 with a random salt."""
+    import secrets
+    salt = secrets.token_hex(16)
+    password_hash = hashlib.sha256((salt + password).encode()).hexdigest()
+    return f"{salt}:{password_hash}"

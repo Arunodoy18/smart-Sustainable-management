@@ -78,26 +78,35 @@ def create_user(*, db: Session = Depends(deps.get_db), user_in: UserCreate) -> A
     """
     Create new user.
     """
-    user = db.query(Profile).filter(Profile.email == user_in.email).first()
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this username already exists in the system.",
-        )
+    try:
+        logger.info(f"Attempting to create user with email: {user_in.email}")
+        user = db.query(Profile).filter(Profile.email == user_in.email).first()
+        if user:
+            raise HTTPException(
+                status_code=400,
+                detail="The user with this username already exists in the system.",
+            )
 
-    db_obj = Profile(
-        id=uuid.uuid4(),
-        email=user_in.email,
-        hashed_password=security.get_password_hash(user_in.password),
-        full_name=user_in.full_name,
-        role=user_in.role,
-        phone=user_in.phone,
-        address=user_in.address,
-    )
-    db.add(db_obj)
-    db.commit()
-    db.refresh(db_obj)
-    return db_obj
+        db_obj = Profile(
+            id=str(uuid.uuid4()),
+            email=user_in.email,
+            hashed_password=security.get_password_hash(user_in.password),
+            full_name=user_in.full_name,
+            role=user_in.role if user_in.role else "user",
+            phone=user_in.phone,
+            address=user_in.address,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        logger.info(f"Successfully created user: {user_in.email}")
+        return db_obj
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 
 @router.get("/me", response_model=User)
@@ -151,9 +160,9 @@ def google_auth(
         if not user:
             # Create new user from Google data
             user = Profile(
-                id=uuid.uuid4(),
+                id=str(uuid.uuid4()),
                 email=email,
-                hashed_password=security.get_password_hash(uuid.uuid4().hex),
+                hashed_password=security.get_password_hash(str(uuid.uuid4())),
                 full_name=name,
                 role=auth_data.role or "user",
                 is_active=True,

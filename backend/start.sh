@@ -1,15 +1,11 @@
 #!/bin/bash
-# Startup script for Render deployment
-# Render automatically sets the PORT environment variable
-
-# Get port from environment or default to 8000
-PORT=${PORT:-8000}
+# Startup script for local development
+# Get port from environment or default to 8080
+PORT=${PORT:-8080}
 
 echo "🚀 Starting Smart Waste Management API on port $PORT"
-echo "Environment: ${ENVIRONMENT:-production}"
-
-# Run database migrations if needed (uncomment when you have migrations)
-# python -m alembic upgrade head
+echo "Environment: ${ENVIRONMENT:-development}"
 
 # Start the application
-exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT --reload
+

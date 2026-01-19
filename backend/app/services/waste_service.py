@@ -7,7 +7,6 @@ from app.core.config import settings
 from app.core.coordinator import coordinator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from uuid import UUID
 import uuid
 
 
@@ -32,7 +31,7 @@ class WasteService:
         return f"/storage/{unique_filename}"
 
     async def classify_and_record(
-        self, user_id: UUID, image_url: str, location: Optional[dict] = None
+        self, user_id: str, image_url: str, location: Optional[dict] = None
     ) -> WasteEntry:
         # Step 1: Classify
         input_data = WasteClassificationInput(user_id=user_id, image_url=image_url)
@@ -79,7 +78,7 @@ class WasteService:
 
         return db_entry
 
-    def get_user_entries(self, user_id: UUID, limit: int = 50) -> List[WasteEntry]:
+    def get_user_entries(self, user_id: str, limit: int = 50) -> List[WasteEntry]:
         return (
             self.db.query(WasteEntry)
             .filter(WasteEntry.user_id == user_id)
@@ -98,9 +97,9 @@ class WasteService:
 
     async def update_status(
         self,
-        entry_id: UUID,
+        entry_id: str,
         status: str,
-        collector_id: Optional[UUID] = None,
+        collector_id: Optional[str] = None,
         collection_image_url: Optional[str] = None,
         driver_location: Optional[dict] = None,
     ) -> WasteEntry:

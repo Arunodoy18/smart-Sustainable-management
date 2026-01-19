@@ -39,7 +39,7 @@ Write-Host "Starting services..." -ForegroundColor Cyan
 Write-Host ""
 
 # Start backend in new terminal
-Write-Host "🔧 Starting Backend (port 8000)..." -ForegroundColor Yellow
+Write-Host "🔧 Starting Backend (port 8080)..." -ForegroundColor Yellow
 Start-Process pwsh -ArgumentList "-NoExit", "-File", "start-backend-local.ps1"
 
 Start-Sleep -Seconds 3

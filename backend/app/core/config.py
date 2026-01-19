@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # Server Configuration
-    PORT: int = 8000  # Port for uvicorn server (Render uses this)
+    PORT: int = 8080  # Port for local development
     HOST: str = "0.0.0.0"  # Bind to all interfaces for containers/cloud
 
     # Security

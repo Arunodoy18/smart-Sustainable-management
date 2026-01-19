@@ -17,6 +17,20 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
+    // Validation
+    if (!email || !password) {
+      setError('Email and password are required');
+      setLoading(false);
+      return;
+    }
+    
+    if (!isLogin && !fullName) {
+      setError('Full name is required');
+      setLoading(false);
+      return;
+    }
+    
     try {
       if (isLogin) {
         await login(email, password);
@@ -25,7 +39,9 @@ export default function AuthPage() {
       }
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Authentication failed. Please try again.');
+      console.error('Auth error:', err);
+      const errorMessage = err.response?.data?.detail || err.message || 'Authentication failed. Please try again.';
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setLoading(false);
     }
