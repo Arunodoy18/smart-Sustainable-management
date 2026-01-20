@@ -20,8 +20,8 @@ from src.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-# Database URL from settings
-database_url = settings.database_url
+# Database URL from settings (use async version)
+database_url = settings.async_database_url
 
 # PostgreSQL async engine with connection pooling
 engine = create_async_engine(

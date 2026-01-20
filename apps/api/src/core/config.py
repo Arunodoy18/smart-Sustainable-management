@@ -152,6 +152,30 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
+    def async_database_url(self) -> str:
+        """Convert database URL to async version for SQLAlchemy."""
+        url = self.database_url
+        # Handle Render's postgres:// URL format
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+
+    @computed_field
+    @property
+    def sync_database_url(self) -> str:
+        """Get sync database URL for Alembic migrations."""
+        url = self.database_url
+        # Handle Render's postgres:// URL format
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        elif url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return url
+
+    @computed_field
+    @property
     def is_production(self) -> bool:
         """Check if running in production environment."""
         return self.app_env == "production"
