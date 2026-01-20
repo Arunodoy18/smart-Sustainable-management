@@ -78,7 +78,7 @@ export function PickupsPage() {
   // Create pickup mutation
   const createPickup = useMutation({
     mutationFn: async (data: PickupFormData) => {
-      const { data: result } = await api.post('/pickups', {
+      const { data: result } = await api.post('/api/v1/pickups', {
         address: data.address,
         notes: data.notes,
         preferred_date: data.preferred_date,

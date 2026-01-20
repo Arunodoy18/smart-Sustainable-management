@@ -35,7 +35,7 @@ export function DashboardPage() {
   const { data: impact } = useQuery({
     queryKey: ['waste', 'impact'],
     queryFn: async () => {
-      const { data } = await api.get<ImpactStats>('/waste/stats/impact');
+      const { data } = await api.get<ImpactStats>('/api/v1/waste/stats/impact');
       return data;
     },
   });
@@ -44,7 +44,7 @@ export function DashboardPage() {
   const { data: recentEntries } = useQuery({
     queryKey: ['waste', 'history', 'recent'],
     queryFn: async () => {
-      const { data } = await api.get('/waste/history', { params: { page_size: 5 } });
+      const { data } = await api.get('/api/v1/waste/history', { params: { page_size: 5 } });
       return data.items as WasteEntry[];
     },
   });

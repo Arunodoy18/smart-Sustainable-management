@@ -66,7 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      const response = await api.get<UserProfile>('/auth/me');
+      const response = await api.get<UserProfile>('/api/v1/auth/me');
       setUser(response.data);
     } catch (error) {
       setUser(null);
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login
   const login = useCallback(
     async (data: LoginRequest) => {
-      const response = await api.post<TokenResponse>('/auth/login', data);
+      const response = await api.post<TokenResponse>('/api/v1/auth/login', data);
       const { access_token, refresh_token, user: userData } = response.data;
 
       setTokens(access_token, refresh_token);
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Register
   const register = useCallback(
     async (data: RegisterRequest) => {
-      await api.post<User>('/auth/register', data);
+      await api.post<User>('/api/v1/auth/register', data);
       // Auto-login after registration
       await login({ email: data.email, password: data.password });
     },
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout
   const logout = useCallback(async () => {
     try {
-      await api.post('/auth/logout', {
+      await api.post('/api/v1/auth/logout', {
         refresh_token: localStorage.getItem('smart_waste_refresh_token'),
       });
     } catch (error) {

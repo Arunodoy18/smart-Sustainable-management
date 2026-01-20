@@ -48,7 +48,7 @@ export function HistoryPage() {
       if (category) params.append('category', category);
       if (search) params.append('search', search);
 
-      const { data } = await api.get(`/waste/history?${params}`);
+      const { data } = await api.get(`/api/v1/waste/history?${params}`);
       return data as {
         items: WasteEntry[];
         total: number;

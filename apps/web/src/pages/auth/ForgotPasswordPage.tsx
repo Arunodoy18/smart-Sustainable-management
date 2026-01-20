@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     try {
-      await api.post('/auth/password/reset', data);
+      await api.post('/api/v1/auth/password/reset', data);
       setIsSubmitted(true);
     } catch (error) {
       // Show success even on error to prevent email enumeration

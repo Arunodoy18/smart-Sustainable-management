@@ -55,7 +55,7 @@ export function RewardsPage() {
   const { data: streak } = useQuery({
     queryKey: ['rewards', 'streak'],
     queryFn: async () => {
-      const { data } = await api.get('/rewards/streak');
+      const { data } = await api.get('/api/v1/rewards/streak');
       return data as { current_streak: number; longest_streak: number; last_activity: string };
     },
   });

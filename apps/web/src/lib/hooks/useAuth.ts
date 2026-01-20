@@ -41,7 +41,7 @@ export function useLogin(): UseMutationResult<TokenResponse, AxiosError<ErrorRes
 
   return useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const response = await api.post<TokenResponse>('/auth/login', credentials);
+      const response = await api.post<TokenResponse>('/api/v1/auth/login', credentials);
       return response.data;
     },
     onSuccess: (data) => {
@@ -75,7 +75,7 @@ export function useRegister(): UseMutationResult<TokenResponse, AxiosError<Error
 
   return useMutation({
     mutationFn: async (data: RegisterData) => {
-      const response = await api.post<TokenResponse>('/auth/register', data);
+      const response = await api.post<TokenResponse>('/api/v1/auth/register', data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -101,7 +101,7 @@ export function useLogout(): UseMutationResult<void, AxiosError<ErrorResponse>, 
   return useMutation({
     mutationFn: async () => {
       try {
-        await api.post('/auth/logout');
+        await api.post('/api/v1/auth/logout');
       } catch {
         // Ignore logout errors
       }
@@ -119,7 +119,7 @@ export function useLogout(): UseMutationResult<void, AxiosError<ErrorResponse>, 
 export function useForgotPassword(): UseMutationResult<{ message: string }, AxiosError<ErrorResponse>, ForgotPasswordData> {
   return useMutation({
     mutationFn: async (data: ForgotPasswordData) => {
-      const response = await api.post<{ message: string }>('/auth/forgot-password', data);
+      const response = await api.post<{ message: string }>('/api/v1/auth/forgot-password', data);
       return response.data;
     },
     onSuccess: () => {
@@ -138,7 +138,7 @@ export function useResetPassword(): UseMutationResult<{ message: string }, Axios
 
   return useMutation({
     mutationFn: async (data: ResetPasswordData) => {
-      const response = await api.post<{ message: string }>('/auth/reset-password', data);
+      const response = await api.post<{ message: string }>('/api/v1/auth/reset-password', data);
       return response.data;
     },
     onSuccess: () => {
@@ -158,7 +158,7 @@ export function useCurrentUser(): UseMutationResult<User, AxiosError<ErrorRespon
 
   return useMutation({
     mutationFn: async () => {
-      const response = await api.get<User>('/auth/me');
+      const response = await api.get<User>('/api/v1/auth/me');
       return response.data;
     },
     onSuccess: (user) => {

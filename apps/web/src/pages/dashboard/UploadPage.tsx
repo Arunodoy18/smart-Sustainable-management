@@ -50,7 +50,7 @@ export function UploadPage() {
       setIsUploading(true);
       setUploadProgress(0);
 
-      const { data } = await api.post<UploadResult>('/waste/upload', formData, {
+      const { data } = await api.post<UploadResult>('/api/v1/waste/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
