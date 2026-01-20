@@ -11,7 +11,7 @@ services:
     plan: free  # Change to 'starter' for production
     region: oregon
     rootDir: apps/api
-    buildCommand: pip install -e . && python -m alembic upgrade head
+    buildCommand: pip install -r requirements.txt && python -m alembic upgrade head
     startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
