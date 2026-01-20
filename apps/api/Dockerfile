@@ -37,9 +37,13 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
 COPY src/ ./src/
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
+COPY start.sh ./
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/storage && \
+    chmod +x /app/start.sh && \
     chown -R appuser:appgroup /app
 
 # Switch to non-root user
@@ -57,5 +61,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application with migrations
+CMD ["/bin/bash", "/app/start.sh"]

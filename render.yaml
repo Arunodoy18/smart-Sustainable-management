@@ -7,12 +7,11 @@ services:
   # Backend API Service
   - type: web
     name: smartwaste-api
-    runtime: python
+    runtime: docker
     plan: free  # Change to 'starter' for production
     region: oregon
     rootDir: apps/api
-    buildCommand: pip install -r requirements.txt && python -m alembic upgrade head
-    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
