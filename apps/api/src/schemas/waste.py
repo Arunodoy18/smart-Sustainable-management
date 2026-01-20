@@ -102,6 +102,32 @@ class WasteEntryResponse(BaseSchema, TimestampMixin):
     # Notes
     user_notes: str | None = None
 
+    @classmethod
+    def from_entry(cls, entry, classification=None) -> "WasteEntryResponse":
+        """Create response from WasteEntry model."""
+        return cls(
+            id=entry.id,
+            user_id=entry.user_id,
+            image_url=entry.image_url,
+            image_thumbnail_url=entry.image_thumbnail_url,
+            category=entry.category,
+            subcategory=entry.subcategory,
+            bin_type=entry.bin_type,
+            ai_confidence=entry.ai_confidence,
+            confidence_tier=entry.confidence_tier,
+            user_verified=entry.user_verified,
+            user_override_category=entry.user_override_category,
+            latitude=entry.latitude,
+            longitude=entry.longitude,
+            address=entry.address,
+            status=entry.status,
+            estimated_weight_kg=entry.estimated_weight_kg,
+            co2_saved_kg=entry.co2_saved_kg,
+            user_notes=entry.user_notes,
+            created_at=entry.created_at,
+            updated_at=entry.updated_at,
+        )
+
 
 class WasteEntryDetailResponse(WasteEntryResponse):
     """Detailed waste entry with recommendations."""
@@ -168,6 +194,14 @@ class ClassificationRequest(BaseSchema):
     review_notes: str | None = Field(default=None, max_length=1000)
 
 
+class ManualClassificationRequest(BaseSchema):
+    """Manual classification by user for low-confidence entries."""
+
+    category: WasteCategory
+    subcategory: WasteSubCategory | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
 # =============================================================================
 # Bin & Category Schemas
 # =============================================================================
@@ -197,3 +231,7 @@ class CategoryRuleResponse(BaseSchema):
     compostable: bool
     icon: str | None = None
     color: str | None = None
+
+
+# Rebuild models to resolve forward references
+WasteEntryDetailResponse.model_rebuild()

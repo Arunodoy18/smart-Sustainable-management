@@ -170,10 +170,10 @@ async def cancel_pickup(
 )
 async def rate_pickup(
     pickup_id: uuid.UUID,
+    current_user: CurrentUser,
+    session: DbSession,
     rating: int = Query(..., ge=1, le=5),
     feedback: str | None = Query(None, max_length=500),
-    current_user: CurrentUser = Depends(),
-    session: DbSession = Depends(),
 ):
     """Rate a completed pickup."""
     pickup_service = PickupService(session)

@@ -13,11 +13,12 @@ export interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
   alt?: string;
   firstName?: string;
   lastName?: string;
+  name?: string; // Combined name prop
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
-  ({ className, src, alt, firstName, lastName, size = 'md', ...props }, ref) => {
+  ({ className, src, alt, firstName, lastName, name, size = 'md', ...props }, ref) => {
     const sizes = {
       sm: 'h-8 w-8 text-xs',
       md: 'h-10 w-10 text-sm',
@@ -25,7 +26,16 @@ const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
       xl: 'h-16 w-16 text-lg',
     };
 
-    const initials = getInitials(firstName, lastName);
+    // Parse name into first/last if provided
+    let first = firstName;
+    let last = lastName;
+    if (name && !firstName && !lastName) {
+      const parts = name.split(' ');
+      first = parts[0] || '';
+      last = parts.slice(1).join(' ') || '';
+    }
+    
+    const initials = getInitials(first, last);
 
     return (
       <div

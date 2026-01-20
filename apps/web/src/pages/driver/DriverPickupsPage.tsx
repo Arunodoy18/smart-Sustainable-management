@@ -26,9 +26,13 @@ import type { Pickup, PickupStatus } from '@/types';
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
   pending: { label: 'Pending', variant: 'warning' },
   assigned: { label: 'Assigned', variant: 'default' },
+  scheduled: { label: 'Scheduled', variant: 'default' },
+  en_route: { label: 'En Route', variant: 'default' },
+  arrived: { label: 'Arrived', variant: 'success' },
   in_progress: { label: 'In Progress', variant: 'default' },
   completed: { label: 'Completed', variant: 'success' },
   cancelled: { label: 'Cancelled', variant: 'secondary' },
+  failed: { label: 'Failed', variant: 'danger' },
 };
 
 export function DriverPickupsPage() {
@@ -282,7 +286,9 @@ export function DriverPickupsPage() {
                 <p className="mt-1 font-medium text-gray-900">
                   {selectedPickup.scheduled_date
                     ? formatDate(selectedPickup.scheduled_date)
-                    : formatDate(selectedPickup.preferred_date)}
+                    : selectedPickup.preferred_date
+                      ? formatDate(selectedPickup.preferred_date)
+                      : 'Not scheduled'}
                 </p>
               </div>
               <div>
@@ -290,7 +296,7 @@ export function DriverPickupsPage() {
                   Time Slot
                 </p>
                 <p className="mt-1 font-medium capitalize text-gray-900">
-                  {selectedPickup.preferred_time_slot.replace('_', ' ')}
+                  {selectedPickup.preferred_time_slot?.replace('_', ' ')}
                 </p>
               </div>
             </div>
@@ -392,7 +398,7 @@ function PickupCard({
               <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <ClockIcon className="h-4 w-4" />
-                  {pickup.preferred_time_slot.replace('_', ' ')}
+                  {pickup.preferred_time_slot?.replace('_', ' ')}
                 </span>
                 <span className="flex items-center gap-1">
                   <Badge variant={STATUS_CONFIG[pickup.status].variant} size="sm">

@@ -159,6 +159,35 @@ class ZoneStatsResponse(BaseSchema):
     avg_pickup_time_minutes: float | None
 
 
+class ZoneAnalyticsResponse(BaseSchema):
+    """Zone analytics response for admin dashboard."""
+
+    zone_id: UUID
+    analytics_date: date
+    waste_by_category: dict = Field(default_factory=dict)
+    total_pickups: int
+    completed_pickups: int
+    average_pickup_time_minutes: int | None
+    active_drivers: int
+    average_driver_rating: float | None
+    hotspot_data: list | None = None
+
+    @classmethod
+    def from_zone(cls, zone) -> "ZoneAnalyticsResponse":
+        """Create response from ZoneAnalytics model."""
+        return cls(
+            zone_id=zone.zone_id,
+            analytics_date=zone.analytics_date,
+            waste_by_category=zone.waste_by_category or {},
+            total_pickups=zone.total_pickups,
+            completed_pickups=zone.completed_pickups,
+            average_pickup_time_minutes=zone.average_pickup_time_minutes,
+            active_drivers=zone.active_drivers,
+            average_driver_rating=float(zone.average_driver_rating) if zone.average_driver_rating else None,
+            hotspot_data=zone.hotspot_data,
+        )
+
+
 # =============================================================================
 # Driver Analytics Schemas
 # =============================================================================
@@ -254,3 +283,14 @@ class ComplianceAlert(BaseSchema):
     zone_id: UUID | None = None
     created_at: datetime
     acknowledged: bool
+
+
+class SystemHealth(BaseSchema):
+    """System health status."""
+
+    database: bool
+    cache: bool
+    ml_service: bool
+    storage: bool
+    overall: bool
+    checked_at: datetime

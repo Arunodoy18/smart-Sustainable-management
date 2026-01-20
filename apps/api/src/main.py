@@ -15,7 +15,7 @@ from fastapi.exceptions import RequestValidationError
 
 from src.core.config import settings
 from src.core.logging import get_logger, setup_logging
-from src.core.database import async_engine
+from src.core.database import engine
 from src.api import (
     auth_router,
     waste_router,
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Handles startup and shutdown events.
     """
     # Startup
-    logger.info("Starting Smart Waste AI API", version="1.0.0", environment=settings.ENVIRONMENT)
+    logger.info("Starting Smart Waste AI API", version="1.0.0", environment=settings.app_env)
     
     # Initialize cache
     from src.core.cache import cache
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Cache disconnected")
     
     # Close database connections
-    await async_engine.dispose()
+    await engine.dispose()
     logger.info("Database connections closed")
 
 
@@ -90,6 +90,15 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None,
     openapi_url="/openapi.json" if not settings.is_production else None,
     lifespan=lifespan,
+)
+
+
+# Add rate limiting middleware
+from src.core.middleware import RateLimitMiddleware
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=settings.rate_limit_requests_per_minute,
+    burst_size=settings.rate_limit_burst,
 )
 
 

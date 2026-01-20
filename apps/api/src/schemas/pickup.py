@@ -5,7 +5,7 @@ Pickup Schemas
 Pydantic schemas for pickup and driver endpoints.
 """
 
-from datetime import date, datetime, time
+from datetime import date as DateType, datetime, time
 from decimal import Decimal
 from uuid import UUID
 
@@ -28,7 +28,7 @@ class PickupRequest(BaseSchema):
     longitude: float = Field(ge=-180, le=180)
     address: str = Field(max_length=500)
     address_details: str | None = Field(default=None, max_length=500)
-    scheduled_date: date | None = None
+    scheduled_date: DateType | None = None
     scheduled_time_start: time | None = None
     scheduled_time_end: time | None = None
     priority: PickupPriority = PickupPriority.NORMAL
@@ -39,7 +39,7 @@ class PickupUpdate(BaseSchema):
 
     address: str | None = Field(default=None, max_length=500)
     address_details: str | None = Field(default=None, max_length=500)
-    scheduled_date: date | None = None
+    scheduled_date: DateType | None = None
     scheduled_time_start: time | None = None
     scheduled_time_end: time | None = None
 
@@ -68,7 +68,7 @@ class PickupResponse(BaseSchema, TimestampMixin):
     priority: PickupPriority
     
     # Schedule
-    scheduled_date: date | None = None
+    scheduled_date: DateType | None = None
     scheduled_time_start: time | None = None
     scheduled_time_end: time | None = None
     
@@ -135,7 +135,7 @@ class DriverPickupListFilters(BaseSchema):
     """Filters for driver pickup list."""
 
     status: PickupStatus | None = None
-    date: date | None = None
+    filter_date: DateType | None = None
     zone_id: UUID | None = None
 
 
@@ -152,7 +152,7 @@ class PickupMapPoint(BaseSchema):
     longitude: float
     status: PickupStatus
     priority: PickupPriority
-    scheduled_date: date | None = None
+    scheduled_date: DateType | None = None
     waste_category: str | None = None
     address: str
 
@@ -210,3 +210,16 @@ class DriverRatingStats(BaseSchema):
     average_rating: float
     total_ratings: int
     rating_distribution: dict[int, int]  # {1: count, 2: count, ...}
+
+
+class DriverLocationUpdate(BaseSchema):
+    """Driver location update."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    heading: float | None = Field(default=None, ge=0, le=360)
+    speed_kmh: float | None = Field(default=None, ge=0)
+
+
+# Alias for backward compatibility
+PickupDetail = PickupDetailResponse

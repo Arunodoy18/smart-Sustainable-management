@@ -29,9 +29,13 @@ interface DriverStats {
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
   pending: { label: 'Pending', variant: 'warning' },
   assigned: { label: 'Assigned', variant: 'default' },
+  scheduled: { label: 'Scheduled', variant: 'default' },
+  en_route: { label: 'En Route', variant: 'default' },
+  arrived: { label: 'Arrived', variant: 'success' },
   in_progress: { label: 'In Progress', variant: 'default' },
   completed: { label: 'Completed', variant: 'success' },
   cancelled: { label: 'Cancelled', variant: 'secondary' },
+  failed: { label: 'Failed', variant: 'danger' },
 };
 
 export function DriverDashboardPage() {
@@ -174,7 +178,7 @@ export function DriverDashboardPage() {
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
                       <ClockIcon className="h-4 w-4" />
-                      {pickup.preferred_time_slot.replace('_', ' ')}
+                      {pickup.preferred_time_slot?.replace('_', ' ')}
                     </span>
                     {pickup.waste_types && (
                       <span>• {pickup.waste_types.slice(0, 2).join(', ')}</span>

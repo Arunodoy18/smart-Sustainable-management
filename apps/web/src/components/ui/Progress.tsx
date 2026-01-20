@@ -16,7 +16,7 @@ export interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
   value: number;
   max?: number;
   size?: 'sm' | 'md' | 'lg';
-  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'gray';
   showLabel?: boolean;
 }
 
@@ -39,6 +39,7 @@ const Progress = forwardRef<HTMLDivElement, ProgressProps>(
       success: 'bg-green-500',
       warning: 'bg-yellow-500',
       danger: 'bg-red-500',
+      gray: 'bg-gray-500',
     };
 
     return (

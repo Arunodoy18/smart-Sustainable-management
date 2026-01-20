@@ -102,10 +102,10 @@ def require_role(*roles: UserRole):
     return role_checker
 
 
-# Convenience dependencies
-RequireAdmin = Depends(require_role(UserRole.ADMIN))
-RequireDriver = Depends(require_role(UserRole.DRIVER, UserRole.ADMIN))
-RequireCitizen = Depends(require_role(UserRole.CITIZEN, UserRole.ADMIN))
+# Convenience dependencies - these are callables, use with Depends() in routes
+RequireAdmin = require_role(UserRole.ADMIN)
+RequireDriver = require_role(UserRole.DRIVER, UserRole.ADMIN)
+RequireCitizen = require_role(UserRole.CITIZEN, UserRole.ADMIN)
 
 
 async def get_optional_user(

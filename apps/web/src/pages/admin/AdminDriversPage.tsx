@@ -31,10 +31,12 @@ interface Driver extends User {
   };
 }
 
-const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger'> = {
+const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger' | 'warning'> = {
   active: 'success',
   inactive: 'secondary',
   suspended: 'danger',
+  pending: 'warning',
+  deleted: 'danger',
 };
 
 export function AdminDriversPage() {
@@ -76,6 +78,7 @@ export function AdminDriversPage() {
       last_name: 'Johnson',
       role: 'driver',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
       driver_profile: {
@@ -94,6 +97,7 @@ export function AdminDriversPage() {
       last_name: 'Garcia',
       role: 'driver',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
       driver_profile: {
@@ -112,6 +116,7 @@ export function AdminDriversPage() {
       last_name: 'Wilson',
       role: 'driver',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
       driver_profile: {

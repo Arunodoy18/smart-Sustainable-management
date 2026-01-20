@@ -33,10 +33,12 @@ const STATUSES: { value: UserStatus | ''; label: string }[] = [
   { value: 'suspended', label: 'Suspended' },
 ];
 
-const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger'> = {
+const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger' | 'warning'> = {
   active: 'success',
   inactive: 'secondary',
   suspended: 'danger',
+  pending: 'warning',
+  deleted: 'danger',
 };
 
 export function AdminUsersPage() {
@@ -82,6 +84,7 @@ export function AdminUsersPage() {
       last_name: 'Doe',
       role: 'citizen',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -92,6 +95,7 @@ export function AdminUsersPage() {
       last_name: 'Smith',
       role: 'citizen',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -102,6 +106,7 @@ export function AdminUsersPage() {
       last_name: 'Driver',
       role: 'driver',
       status: 'active',
+      email_verified: true,
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -112,6 +117,7 @@ export function AdminUsersPage() {
       last_name: 'Wilson',
       role: 'citizen',
       status: 'suspended',
+      email_verified: true,
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     },

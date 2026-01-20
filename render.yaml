@@ -1,0 +1,53 @@
+# Render Blueprint
+# ==================
+# This file configures automatic deployment on Render
+# See: https://render.com/docs/blueprint-spec
+
+services:
+  # Backend API Service
+  - type: web
+    name: smartwaste-api
+    runtime: python
+    plan: free  # Change to 'starter' for production
+    region: oregon
+    rootDir: apps/api
+    buildCommand: pip install -e .
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      # Required secrets (set in Render dashboard)
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      # Optional
+      - key: REDIS_URL
+        sync: false
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+
+databases:
+  # PostgreSQL Database (optional - can use external like Neon)
+  - name: smartwaste-db
+    plan: free  # Change to 'starter' for production
+    region: oregon
+    databaseName: smartwaste
+    user: smartwaste

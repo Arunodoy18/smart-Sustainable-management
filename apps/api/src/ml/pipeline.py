@@ -40,6 +40,15 @@ class ClassificationPipeline:
     without changing the orchestration logic.
     """
     
+    _instance: "ClassificationPipeline | None" = None
+    
+    @classmethod
+    def get_instance(cls) -> "ClassificationPipeline":
+        """Get singleton pipeline instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
     def __init__(
         self,
         classifier: BaseClassifier | None = None,
@@ -85,20 +94,31 @@ class ClassificationPipeline:
             safety_validator=self.safety_validator.model_name,
         )
     
-    async def classify(self, image: Image.Image) -> PipelineResult:
+    async def classify(self, image_data: bytes | Image.Image | None = None) -> PipelineResult:
         """
         Run full classification pipeline on an image.
         
         Args:
-            image: PIL Image to classify
+            image_data: Image as bytes, PIL Image, or None (uses mock data)
             
         Returns:
             Complete pipeline result
         """
+        from io import BytesIO
+        
         if not self._initialized:
             await self.initialize()
         
         start_time = time.perf_counter()
+        
+        # Convert bytes to PIL Image if needed
+        if image_data is None:
+            # Use a mock/placeholder image for testing
+            image = Image.new('RGB', (224, 224), color='gray')
+        elif isinstance(image_data, bytes):
+            image = Image.open(BytesIO(image_data))
+        else:
+            image = image_data
         
         # Stage 1: Preprocess image
         processed_image = self._preprocess_image(image)

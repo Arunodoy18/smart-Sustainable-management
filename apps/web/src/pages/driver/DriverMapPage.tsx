@@ -44,9 +44,13 @@ const activeIcon = new Icon({
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
   pending: { label: 'Pending', variant: 'warning' },
   assigned: { label: 'Assigned', variant: 'default' },
+  scheduled: { label: 'Scheduled', variant: 'default' },
+  en_route: { label: 'En Route', variant: 'default' },
+  arrived: { label: 'Arrived', variant: 'success' },
   in_progress: { label: 'In Progress', variant: 'default' },
   completed: { label: 'Completed', variant: 'success' },
   cancelled: { label: 'Cancelled', variant: 'secondary' },
+  failed: { label: 'Failed', variant: 'danger' },
 };
 
 // Component to update map center
@@ -190,7 +194,7 @@ export function DriverMapPage() {
                   </Badge>
                   <p className="mt-2 font-semibold">{pickup.address}</p>
                   <p className="text-sm text-gray-500">
-                    {pickup.preferred_time_slot.replace('_', ' ')}
+                    {pickup.preferred_time_slot?.replace('_', ' ')}
                   </p>
                   <div className="mt-2 flex gap-1">
                     {pickup.waste_types?.slice(0, 2).map((type) => (
@@ -287,7 +291,7 @@ export function DriverMapPage() {
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                       <ClockIcon className="h-3 w-3" />
-                      {pickup.preferred_time_slot.replace('_', ' ')}
+                      {pickup.preferred_time_slot?.replace('_', ' ')}
                       <Badge variant={STATUS_CONFIG[pickup.status].variant} size="sm">
                         {STATUS_CONFIG[pickup.status].label}
                       </Badge>

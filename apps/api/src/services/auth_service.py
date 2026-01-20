@@ -202,11 +202,27 @@ class AuthService:
         await self.session.flush()
 
         logger.info("User logged in", user_id=str(user.id))
+        
+        from src.schemas.user import UserResponse
 
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=settings.jwt_access_token_expire_minutes * 60,
+            user=UserResponse(
+                id=user.id,
+                email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                phone=user.phone,
+                avatar_url=user.avatar_url,
+                role=user.role,
+                status=user.status,
+                email_verified=user.email_verified,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                last_login_at=user.last_login_at,
+            ),
         )
 
     async def refresh_tokens(

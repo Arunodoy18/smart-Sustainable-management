@@ -19,11 +19,19 @@ export interface StatsCardProps extends HTMLAttributes<HTMLDivElement> {
     isPositive: boolean;
     label?: string;
   };
+  change?: number; // Simple change value (alternative to trend)
+  changeLabel?: string;
   suffix?: string;
 }
 
 const StatsCard = forwardRef<HTMLDivElement, StatsCardProps>(
-  ({ className, title, value, icon, iconColor = 'bg-primary-100 text-primary-600', trend, suffix, ...props }, ref) => {
+  ({ className, title, value, icon, iconColor = 'bg-primary-100 text-primary-600', trend, change, changeLabel, suffix, ...props }, ref) => {
+    // Compute trend from change if trend not provided
+    const displayTrend = trend || (change !== undefined ? {
+      value: Math.abs(change),
+      isPositive: change >= 0,
+      label: changeLabel,
+    } : undefined);
     return (
       <div
         ref={ref}
@@ -43,17 +51,17 @@ const StatsCard = forwardRef<HTMLDivElement, StatsCardProps>(
             </span>
             {suffix && <span className="text-sm text-gray-500">{suffix}</span>}
           </p>
-          {trend && (
+          {displayTrend && (
             <p className="mt-1 flex items-center gap-1 text-xs">
-              {trend.isPositive ? (
+              {displayTrend.isPositive ? (
                 <ArrowUpIcon className="h-3.5 w-3.5 text-green-500" />
               ) : (
                 <ArrowDownIcon className="h-3.5 w-3.5 text-red-500" />
               )}
-              <span className={trend.isPositive ? 'text-green-600' : 'text-red-600'}>
-                {trend.value}%
+              <span className={displayTrend.isPositive ? 'text-green-600' : 'text-red-600'}>
+                {displayTrend.value}%
               </span>
-              {trend.label && <span className="text-gray-500">{trend.label}</span>}
+              {displayTrend.label && <span className="text-gray-500">{displayTrend.label}</span>}
             </p>
           )}
         </div>

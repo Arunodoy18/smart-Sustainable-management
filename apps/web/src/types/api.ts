@@ -26,6 +26,7 @@ export interface ErrorResponse {
   success: false;
   error: string;
   message?: string;
+  detail?: string; // FastAPI error format
   details?: Array<{
     field: string;
     message: string;
@@ -38,7 +39,7 @@ export interface ErrorResponse {
 // ============================================================================
 
 export type UserRole = 'citizen' | 'driver' | 'admin';
-export type UserStatus = 'active' | 'suspended' | 'pending' | 'deleted';
+export type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending' | 'deleted';
 
 export interface User {
   id: string;
@@ -47,6 +48,7 @@ export interface User {
   last_name: string;
   phone?: string;
   avatar_url?: string;
+  address?: string;
   role: UserRole;
   status: UserStatus;
   email_verified: boolean;
@@ -60,6 +62,7 @@ export interface UserProfile extends User {
   current_streak: number;
   total_waste_entries: number;
   level: number;
+  address?: string;
 }
 
 export interface LoginRequest {
@@ -110,7 +113,9 @@ export type ConfidenceTier = 'high' | 'medium' | 'low';
 export interface Classification {
   category: WasteCategory;
   subcategory?: string;
+  sub_category?: string; // API may use snake_case
   bin_type: BinType;
+  recommended_bin?: string; // Alternative field name
   confidence: number;
   confidence_tier: ConfidenceTier;
   reasoning?: string;
@@ -127,12 +132,21 @@ export interface WasteEntry {
   address?: string;
   notes?: string;
   classification?: Classification;
+  points_earned?: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface WasteEntryDetail extends WasteEntry {
   recommendations: Recommendation[];
+}
+
+// Response from classification endpoint
+export interface WasteClassification {
+  entry: WasteEntry;
+  classification: Classification;
+  recommendations: Recommendation[];
+  points_earned: number;
 }
 
 export interface Recommendation {
@@ -159,6 +173,7 @@ export type PickupStatus =
   | 'pending'
   | 'scheduled'
   | 'assigned'
+  | 'in_progress'
   | 'en_route'
   | 'arrived'
   | 'completed'
@@ -174,6 +189,8 @@ export interface Pickup {
   address: string;
   scheduled_date: string;
   scheduled_time_slot: string;
+  preferred_date?: string; // Alternative field name
+  preferred_time_slot?: string; // Alternative field name  
   status: PickupStatus;
   estimated_weight_kg?: number;
   waste_types: string[];
@@ -184,6 +201,11 @@ export interface Pickup {
   created_at: string;
   updated_at: string;
   completed_at?: string;
+  citizen?: {
+    first_name: string;
+    last_name: string;
+    phone?: string;
+  };
   driver?: {
     id: string;
     first_name: string;
@@ -251,8 +273,10 @@ export interface Achievement {
   icon: string;
   category: string;
   points: number;
+  points_reward?: number; // Alternative field name
   unlocked: boolean;
   unlocked_at?: string;
+  earned_at?: string; // Alternative field name
   progress?: number;
   target?: number;
 }
@@ -262,9 +286,11 @@ export interface LeaderboardEntry {
   user_id: string;
   first_name: string;
   last_name: string;
+  display_name?: string;
   avatar_url?: string;
   points: number;
   level: number;
+  is_current_user?: boolean;
 }
 
 export interface Leaderboard {

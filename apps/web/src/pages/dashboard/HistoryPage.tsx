@@ -220,7 +220,7 @@ export function HistoryPage() {
                       <span className="text-gray-500">
                         {formatDate(entry.created_at)}
                       </span>
-                      {entry.points_earned > 0 && (
+                      {entry.points_earned && entry.points_earned > 0 && (
                         <span className="text-primary-600 font-medium">
                           +{entry.points_earned} pts
                         </span>
@@ -354,7 +354,7 @@ export function HistoryPage() {
             {/* Metadata */}
             <div className="flex items-center justify-between border-t border-gray-200 pt-4 text-sm text-gray-500">
               <span>Uploaded {formatDate(selectedEntry.created_at)}</span>
-              {selectedEntry.points_earned > 0 && (
+              {selectedEntry.points_earned && selectedEntry.points_earned > 0 && (
                 <span className="text-primary-600 font-medium">
                   +{selectedEntry.points_earned} points earned
                 </span>

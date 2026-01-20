@@ -111,6 +111,7 @@ class User(Base):
         "DriverProfile",
         back_populates="user",
         uselist=False,
+        foreign_keys="DriverProfile.user_id",
     )
     pickups_as_driver: Mapped[list["Pickup"]] = relationship(
         "Pickup",

@@ -74,3 +74,48 @@ htmlcov/
 # Storage
 storage/uploads/
 storage/temp/
+
+# Production secrets - NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+*.pem
+*.key
+*.crt
+secrets/
+
+# Keep example files
+!.env.example
+!apps/*/.env.example
+
+# ML models (download separately)
+models/*.pt
+models/*.pth
+models/*.onnx
+models/*.h5
+!models/.gitkeep
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Build outputs
+apps/web/dist/
+apps/api/dist/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Alembic
+apps/api/alembic/versions/*.py
+!apps/api/alembic/versions/.gitkeep
+

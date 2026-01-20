@@ -21,12 +21,18 @@ import {
 import { api } from '@/lib';
 import { useUploadStore } from '@/stores';
 import { Card, Button, Badge, Progress, Spinner } from '@/components/ui';
-import type { Classification } from '@/types';
+import type { WasteCategory, BinType, ConfidenceTier } from '@/types';
 
+// Match backend WasteEntryResponse structure
 interface UploadResult {
-  entry_id: string;
-  classification: Classification;
-  points_earned: number;
+  id: string;
+  category: WasteCategory | null;
+  subcategory: string | null;
+  bin_type: BinType | null;
+  ai_confidence: number | null;
+  confidence_tier: ConfidenceTier | null;
+  user_notes: string | null;
+  // Points are calculated separately - assume 10 for now
 }
 
 export function UploadPage() {
@@ -39,7 +45,7 @@ export function UploadPage() {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('file', file);
 
       setIsUploading(true);
       setUploadProgress(0);
@@ -202,7 +208,7 @@ export function UploadPage() {
                         Classification Complete!
                       </h3>
                       <p className="mt-1 text-sm text-gray-600">
-                        You earned +{result.points_earned} points 🎉
+                        You earned +10 points 🎉
                       </p>
                     </div>
                   </div>
@@ -214,11 +220,11 @@ export function UploadPage() {
                         Category
                       </p>
                       <p className="mt-1 text-lg font-semibold capitalize text-gray-900">
-                        {result.classification.category.replace('_', ' ')}
+                        {result.category?.replace('_', ' ') || 'Unknown'}
                       </p>
-                      {result.classification.sub_category && (
+                      {result.subcategory && (
                         <p className="text-sm text-gray-600">
-                          {result.classification.sub_category.replace('_', ' ')}
+                          {result.subcategory.replace('_', ' ')}
                         </p>
                       )}
                     </div>
@@ -231,62 +237,52 @@ export function UploadPage() {
                       <div className="mt-1 flex items-center gap-2">
                         <Badge
                           variant={
-                            result.classification.confidence_tier === 'high'
+                            result.confidence_tier === 'high'
                               ? 'success'
-                              : result.classification.confidence_tier === 'medium'
+                              : result.confidence_tier === 'medium'
                               ? 'warning'
                               : 'danger'
                           }
                           size="lg"
                         >
-                          {Math.round(result.classification.confidence * 100)}%
+                          {Math.round((result.ai_confidence || 0) * 100)}%
                         </Badge>
                         <span className="text-sm capitalize text-gray-600">
-                          {result.classification.confidence_tier} confidence
+                          {result.confidence_tier || 'unknown'} confidence
                         </span>
                       </div>
                     </div>
                   </div>
 
                   {/* Bin recommendation */}
-                  <div className="mt-4">
-                    <div
-                      className={`flex items-center gap-4 rounded-lg p-4 ${
-                        getBinInfo(result.classification.recommended_bin).bg
-                      }`}
-                    >
-                      <span className="text-3xl">
-                        {getBinInfo(result.classification.recommended_bin).icon}
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">
-                          Dispose in
-                        </p>
-                        <p
-                          className={`text-lg font-bold capitalize ${
-                            getBinInfo(result.classification.recommended_bin).color
-                          }`}
-                        >
-                          {result.classification.recommended_bin} Bin
-                        </p>
+                  {result.bin_type && (
+                    <div className="mt-4">
+                      <div
+                        className={`flex items-center gap-4 rounded-lg p-4 ${
+                          getBinInfo(result.bin_type).bg
+                        }`}
+                      >
+                        <span className="text-3xl">
+                          {getBinInfo(result.bin_type).icon}
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Dispose in
+                          </p>
+                          <p
+                            className={`text-lg font-bold capitalize ${
+                              getBinInfo(result.bin_type).color
+                            }`}
+                          >
+                            {result.bin_type} Bin
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Handling instructions */}
-                  {result.classification.handling_instructions && (
-                    <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Handling Instructions
-                      </p>
-                      <p className="mt-1 text-gray-700">
-                        {result.classification.handling_instructions}
-                      </p>
                     </div>
                   )}
 
                   {/* Low confidence warning */}
-                  {result.classification.confidence_tier === 'low' && (
+                  {result.confidence_tier === 'low' && (
                     <div className="mt-4 flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                       <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-yellow-600" />
                       <div>
@@ -303,7 +299,7 @@ export function UploadPage() {
                           size="sm"
                           className="mt-2"
                           onClick={() =>
-                            navigate(`/dashboard/history?entry=${result.entry_id}`)
+                            navigate(`/dashboard/history?entry=${result.id}`)
                           }
                         >
                           Correct Classification

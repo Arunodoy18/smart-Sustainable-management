@@ -38,9 +38,13 @@ type PickupFormData = z.infer<typeof pickupSchema>;
 const STATUS_CONFIG: Record<PickupStatus, { label: string; color: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', variant: 'warning' },
   assigned: { label: 'Assigned', color: 'bg-blue-100 text-blue-700', variant: 'default' },
+  scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700', variant: 'default' },
+  en_route: { label: 'En Route', color: 'bg-blue-100 text-blue-700', variant: 'default' },
+  arrived: { label: 'Arrived', color: 'bg-green-100 text-green-700', variant: 'success' },
   in_progress: { label: 'In Progress', color: 'bg-primary-100 text-primary-700', variant: 'default' },
   completed: { label: 'Completed', color: 'bg-green-100 text-green-700', variant: 'success' },
   cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-700', variant: 'secondary' },
+  failed: { label: 'Failed', color: 'bg-red-100 text-red-700', variant: 'danger' },
 };
 
 const WASTE_TYPES = [
@@ -435,11 +439,13 @@ function PickupCard({
                 <CalendarIcon className="h-4 w-4" />
                 {pickup.scheduled_date
                   ? formatDate(pickup.scheduled_date)
-                  : formatDate(pickup.preferred_date)}
+                  : pickup.preferred_date
+                    ? formatDate(pickup.preferred_date)
+                    : 'Not scheduled'}
               </span>
               <span className="flex items-center gap-1">
                 <ClockIcon className="h-4 w-4" />
-                {pickup.preferred_time_slot.replace('_', ' ')}
+                {pickup.preferred_time_slot?.replace('_', ' ')}
               </span>
             </div>
           </div>

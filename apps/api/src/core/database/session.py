@@ -16,10 +16,16 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import NullPool
 
 from src.core.config import settings
+from src.core.logging import get_logger
 
-# Create async engine with connection pooling
+logger = get_logger(__name__)
+
+# Database URL from settings
+database_url = settings.database_url
+
+# PostgreSQL async engine with connection pooling
 engine = create_async_engine(
-    settings.database_url,
+    database_url,
     echo=settings.debug,
     pool_size=settings.database_pool_size if not settings.is_development else 5,
     max_overflow=settings.database_max_overflow if not settings.is_development else 0,
@@ -29,7 +35,7 @@ engine = create_async_engine(
 
 # Create async engine for testing (no connection pooling)
 test_engine = create_async_engine(
-    settings.database_url,
+    database_url,
     echo=settings.debug,
     poolclass=NullPool,
 )

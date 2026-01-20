@@ -11,16 +11,18 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 
 from src.api.deps import CurrentUser, DbSession, OptionalUser, get_optional_user
-from src.models.waste import ClassificationConfidence
+from src.models.waste import ClassificationConfidence, WasteCategory
 from src.schemas.common import PaginatedResponse
 from src.schemas.waste import (
     ClassificationResult,
     WasteEntryCreate,
     WasteEntryResponse,
-    WasteEntryDetail,
+    WasteEntryDetailResponse,
+    ClassificationRequest,
     ManualClassificationRequest,
 )
 from src.services import WasteService
+from src.services.storage_service import storage, StorageError
 
 router = APIRouter(prefix="/waste", tags=["Waste Management"])
 
@@ -59,6 +61,19 @@ async def upload_waste_image(
             detail="Image must be under 10MB",
         )
     
+    # Upload image to storage
+    try:
+        image_url, thumbnail_url = await storage.upload_image(
+            content=content,
+            filename=file.filename or "upload.jpg",
+            user_id=str(current_user.id),
+        )
+    except StorageError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload image: {str(e)}",
+        )
+    
     waste_service = WasteService(session)
     
     # Create waste entry
@@ -66,14 +81,14 @@ async def upload_waste_image(
         latitude=latitude,
         longitude=longitude,
         address=address,
-        notes=notes,
+        user_notes=notes,
     )
     
     entry = await waste_service.create_entry(
         user_id=current_user.id,
+        image_url=image_url,
         data=entry_data,
-        image_data=content,
-        filename=file.filename or "upload.jpg",
+        thumbnail_url=thumbnail_url,
     )
     
     # Run AI classification
@@ -98,25 +113,38 @@ async def get_waste_history(
     """Get user's waste entry history."""
     waste_service = WasteService(session)
     
+    # Convert page/page_size to limit/offset
+    offset = (page - 1) * page_size
+    
+    # Convert category string to enum if provided
+    category_enum = None
+    if category:
+        try:
+            category_enum = WasteCategory(category)
+        except ValueError:
+            pass  # Invalid category, ignore filter
+    
     entries, total = await waste_service.get_user_entries(
         user_id=current_user.id,
-        page=page,
-        page_size=page_size,
-        category=category,
+        limit=page_size,
+        offset=offset,
+        category=category_enum,
     )
+    
+    total_pages = (total + page_size - 1) // page_size if page_size else 0
     
     return PaginatedResponse(
         items=[WasteEntryResponse.from_entry(e, e.classification) for e in entries],
         total=total,
         page=page,
         page_size=page_size,
-        pages=(total + page_size - 1) // page_size if page_size else 0,
+        total_pages=total_pages,
     )
 
 
 @router.get(
     "/{entry_id}",
-    response_model=WasteEntryDetail,
+    response_model=WasteEntryDetailResponse,
     summary="Get waste entry",
     description="Get details of a specific waste entry.",
 )
@@ -146,10 +174,24 @@ async def get_waste_entry(
     # Get recommendations
     recommendations = await waste_service.get_recommendations(entry.id)
     
-    return WasteEntryDetail.from_entry(
-        entry,
-        entry.classification,
-        recommendations,
+    # Build response
+    from src.schemas.waste import RecommendationResponse
+    response = WasteEntryResponse.from_entry(entry, entry.classification)
+    
+    return WasteEntryDetailResponse(
+        **response.model_dump(),
+        recommendations=[
+            RecommendationResponse(
+                id=r.id,
+                title=r.title,
+                description=r.description,
+                recommendation_type=r.recommendation_type,
+                priority=r.priority,
+                icon=r.icon,
+                action_url=r.action_url,
+                action_label=r.action_label,
+            ) for r in recommendations
+        ],
     )
 
 
@@ -304,7 +346,6 @@ def _get_bin_color(bin_type) -> str:
         BinType.BLACK: "#1f2937",
         BinType.YELLOW: "#eab308",
         BinType.RED: "#ef4444",
-        BinType.BROWN: "#92400e",
         BinType.SPECIAL: "#8b5cf6",
     }
     return colors.get(bin_type, "#6b7280")

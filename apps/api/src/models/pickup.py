@@ -135,7 +135,11 @@ class DriverProfile(Base):
     last_location_updated: Mapped[datetime | None] = mapped_column(nullable=True)
     
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="driver_profile")
+    user: Mapped["User"] = relationship(
+        "User", 
+        back_populates="driver_profile",
+        foreign_keys=[user_id],
+    )
     zone: Mapped["Zone | None"] = relationship("Zone", back_populates="drivers")
 
 
@@ -299,5 +303,5 @@ class DriverLog(Base):
         nullable=True,
     )
     
-    # Metadata
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Additional data
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

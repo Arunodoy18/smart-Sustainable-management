@@ -9,9 +9,12 @@ import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'ax
 
 import type { TokenResponse, ErrorResponse } from '@/types';
 
+// Get API base URL from environment or use default for local development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -112,7 +115,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post<TokenResponse>('/api/v1/auth/refresh', {
+        const response = await axios.post<TokenResponse>(`${API_BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         });
 

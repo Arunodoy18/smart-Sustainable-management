@@ -33,6 +33,7 @@ class TokenResponse(BaseSchema):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int = Field(description="Access token expiration in seconds")
+    user: "UserResponse | None" = Field(default=None, description="User information")
 
 
 class RefreshTokenRequest(BaseSchema):
@@ -208,3 +209,7 @@ class DriverAvailabilityUpdate(BaseSchema):
     """Driver availability toggle."""
 
     is_available: bool
+
+
+# Rebuild models to resolve forward references
+TokenResponse.model_rebuild()

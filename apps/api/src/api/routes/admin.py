@@ -509,9 +509,9 @@ async def list_pickups(
 )
 async def assign_pickup(
     pickup_id: uuid.UUID,
+    current_user: CurrentUser,
+    session: DbSession,
     driver_id: uuid.UUID = Query(...),
-    current_user: CurrentUser = Depends(),
-    session: DbSession = Depends(),
 ):
     """Assign pickup to driver."""
     from src.services import PickupService

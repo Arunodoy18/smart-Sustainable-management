@@ -145,7 +145,7 @@ async def get_recent_achievements(
 async def get_leaderboard(
     current_user: CurrentUser,
     session: DbSession,
-    period: str = Query("weekly", regex="^(daily|weekly|monthly|all_time)$"),
+    period: str = Query("weekly", pattern="^(daily|weekly|monthly|all_time)$"),
     limit: int = Query(10, ge=1, le=100),
 ):
     """Get leaderboard rankings."""

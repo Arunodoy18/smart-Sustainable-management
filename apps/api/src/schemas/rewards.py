@@ -34,14 +34,14 @@ class RewardResponse(BaseSchema, TimestampMixin):
 class RewardSummary(BaseSchema):
     """User's reward summary."""
 
-    total_points: int
-    available_points: int
-    redeemed_points: int
-    level: int
-    level_progress: int
-    points_to_next_level: int
-    current_streak: int
-    longest_streak: int
+    total_points: int = 0
+    available_points: int = 0
+    redeemed_points: int = 0
+    level: int = 1
+    level_progress: int = 0
+    points_to_next_level: int = 100
+    current_streak: int = 0
+    longest_streak: int = 0
 
 
 class RewardHistory(BaseSchema):

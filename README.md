@@ -37,8 +37,8 @@ An intelligent waste management system that uses **AI-powered classification** w
 | **User Dashboard** | Track personal waste history and impact |
 | **Driver Portal** | Accept pickups, verify collection with photos |
 | **Analytics** | Real-time metrics: recycling rate, CO2 saved, etc. |
-| **Google Maps** | Location-based waste tracking |
-| **Supabase Auth** | Secure login with Google OAuth |
+| **Maps Integration** | Location-based waste tracking |
+| **JWT Authentication** | Secure login with email/password |
 
 ---
 
@@ -59,16 +59,16 @@ Frontend (React)          Backend (FastAPI)         Database
         │                   └────┬────┘                
         │                        │                      
         └────────────────────────┴──────→ PostgreSQL
-                                           (Supabase)
+                                           (Managed DB)
 ```
 
 **Tech Stack:**
-- **Frontend**: React, Vite, TailwindCSS, Recharts
-- **Backend**: FastAPI, Python, SQLAlchemy
-- **Database**: PostgreSQL (Supabase)
-- **AI**: OpenAI GPT-4o Vision
-- **Auth**: Supabase (Google OAuth)
-- **Maps**: Google Maps API
+- **Frontend**: React 18, Vite, TailwindCSS, Recharts
+- **Backend**: FastAPI, Python 3.11+, SQLAlchemy
+- **Database**: PostgreSQL (Managed: Render/Neon/Supabase DB)
+- **AI**: ML Classification Pipeline
+- **Auth**: JWT with secure refresh tokens
+- **Maps**: Leaflet/Mapbox
 - **Deployment**: Render (backend) + Netlify (frontend)
 
 ---
@@ -79,10 +79,8 @@ Frontend (React)          Backend (FastAPI)         Database
 
 - Python 3.11+
 - Node.js 18+
-- PostgreSQL (or Supabase)
-- OpenAI API Key
-- Supabase Account
-- Google Maps API Key
+- PostgreSQL 15+ (local or managed: Render/Neon/Supabase DB)
+- Mapbox Access Token (optional, for maps)
 
 ### 1️⃣ Backend Setup
 
@@ -375,17 +373,19 @@ Based on proper waste segregation:
 
 ## 🚀 Deployment
 
-### Docker Production
+### Docker (Local/Self-hosted)
 
 ```bash
 docker-compose up -d
 ```
 
-### Cloud Platforms
+### Production Deployment
 
-- **Azure**: App Service + PostgreSQL + Blob Storage
-- **AWS**: ECS + RDS + S3
-- **GCP**: Cloud Run + Cloud SQL + GCS
+- **Backend**: Render (Web Service)
+- **Frontend**: Netlify (Static Site)
+- **Database**: Render PostgreSQL / Neon / Supabase DB
+
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
 
 ---
 

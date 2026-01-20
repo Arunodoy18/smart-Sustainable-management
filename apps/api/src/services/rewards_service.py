@@ -193,19 +193,24 @@ class RewardsService:
         )
         user_points = result.scalar_one_or_none()
 
-        if not user_points:
-            user_points = UserPoints(
-                user_id=user_id,
-                total_points=0,
-                available_points=0,
-                level=1,
-            )
-
         # Get streak
         result = await self.session.execute(
             select(UserStreak).where(UserStreak.user_id == user_id)
         )
         streak = result.scalar_one_or_none()
+
+        # Handle case when user has no points record yet
+        if not user_points:
+            return RewardSummary(
+                total_points=0,
+                available_points=0,
+                redeemed_points=0,
+                level=1,
+                level_progress=0,
+                points_to_next_level=LEVEL_THRESHOLDS[1] if len(LEVEL_THRESHOLDS) > 1 else 100,
+                current_streak=streak.current_streak if streak else 0,
+                longest_streak=streak.longest_streak if streak else 0,
+            )
 
         # Calculate points to next level
         current_threshold = LEVEL_THRESHOLDS[user_points.level - 1]
@@ -219,9 +224,9 @@ class RewardsService:
         return RewardSummary(
             total_points=user_points.total_points,
             available_points=user_points.available_points,
-            redeemed_points=user_points.redeemed_points,
+            redeemed_points=user_points.redeemed_points or 0,
             level=user_points.level,
-            level_progress=user_points.level_progress,
+            level_progress=user_points.level_progress or 0,
             points_to_next_level=max(0, points_to_next),
             current_streak=streak.current_streak if streak else 0,
             longest_streak=streak.longest_streak if streak else 0,

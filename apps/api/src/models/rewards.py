@@ -99,8 +99,8 @@ class Reward(Base):
         nullable=True,
     )
     
-    # Metadata
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Additional data
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="rewards")
@@ -301,6 +301,6 @@ class RewardRedemption(Base):
     )  # pending, fulfilled, cancelled
     fulfilled_at: Mapped[datetime | None] = mapped_column(nullable=True)
     
-    # Metadata
+    # Additional data
     redemption_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

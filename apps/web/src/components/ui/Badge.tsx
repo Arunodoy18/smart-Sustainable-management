@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   dot?: boolean;
 }
 
@@ -37,6 +37,7 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     const sizes = {
       sm: 'px-2 py-0.5 text-xs',
       md: 'px-2.5 py-0.5 text-sm',
+      lg: 'px-3 py-1 text-base',
     };
 
     return (

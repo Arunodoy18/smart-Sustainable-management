@@ -163,6 +163,95 @@ class WasteService:
 
         return entry
 
+    async def classify_entry(self, entry_id: UUID) -> Classification:
+        """
+        Run AI classification on a waste entry.
+        
+        Args:
+            entry_id: ID of the waste entry to classify
+            
+        Returns:
+            Classification record
+        """
+        import time
+        from src.ml import ClassificationPipeline
+        from src.services.storage_service import storage
+        
+        entry = await self.get_entry(entry_id)
+        if not entry:
+            raise ValueError(f"Waste entry {entry_id} not found")
+        
+        # Get image data
+        image_data = None
+        if entry.image_url:
+            # Extract key from URL
+            if entry.image_url.startswith("/storage/"):
+                key = entry.image_url.replace("/storage/", "")
+                image_data = await storage.get_file(key)
+            else:
+                # For external URLs, we'd need to fetch - for now use mock
+                pass
+        
+        # Run classification
+        start_time = time.time()
+        pipeline = ClassificationPipeline.get_instance()
+        result = await pipeline.classify(image_data)
+        processing_time_ms = int((time.time() - start_time) * 1000)
+        
+        # Determine category rule for bin type
+        rule = await self._get_category_rule(result.category, result.subcategory)
+        bin_type = rule.bin_type if rule else BinType.BLACK
+        
+        # Update entry with classification
+        entry.category = result.category
+        entry.subcategory = result.subcategory
+        entry.bin_type = bin_type
+        entry.ai_confidence = result.confidence
+        entry.confidence_tier = result.confidence_tier
+        entry.ai_raw_predictions = result.all_predictions
+        entry.status = WasteEntryStatus.CLASSIFIED
+
+        # Create detailed classification record
+        classification = Classification(
+            waste_entry_id=entry.id,
+            primary_model_name="mock-classifier",
+            primary_model_version="1.0.0",
+            primary_predictions=result.all_predictions,
+            primary_confidence=result.confidence,
+            primary_category=result.category,
+            processing_time_ms=processing_time_ms,
+            requires_manual_review=result.confidence_tier == ClassificationConfidence.LOW,
+        )
+
+        self.session.add(classification)
+
+        # Generate recommendations
+        await self._generate_recommendations(entry)
+
+        # Calculate environmental impact
+        await self._calculate_impact(entry)
+
+        await self.session.flush()
+
+        logger.info(
+            "Classification completed",
+            entry_id=str(entry_id),
+            category=result.category.value,
+            confidence=result.confidence,
+            processing_time_ms=processing_time_ms,
+        )
+
+        return classification
+
+    async def get_recommendations(self, entry_id: UUID) -> list[Recommendation]:
+        """Get recommendations for a waste entry."""
+        result = await self.session.execute(
+            select(Recommendation)
+            .where(Recommendation.waste_entry_id == entry_id)
+            .order_by(Recommendation.priority)
+        )
+        return list(result.scalars().all())
+
     async def apply_classification(
         self,
         entry_id: UUID,

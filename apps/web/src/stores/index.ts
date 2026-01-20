@@ -7,6 +7,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { User } from '@/types';
 
 // ============================================================================
 // UI STORE
@@ -39,15 +40,17 @@ export const useUIStore = create<UIState>()(
 // UPLOAD STORE
 // ============================================================================
 
-interface UploadState {
+export interface UploadState {
   selectedFile: File | null;
   previewUrl: string | null;
   isUploading: boolean;
   progress: number;
+  uploadProgress: number; // Alias for progress
   setSelectedFile: (file: File | null) => void;
   setPreviewUrl: (url: string | null) => void;
   setIsUploading: (uploading: boolean) => void;
   setProgress: (progress: number) => void;
+  setUploadProgress: (progress: number) => void; // Alias for setProgress
   reset: () => void;
 }
 
@@ -56,16 +59,19 @@ export const useUploadStore = create<UploadState>()((set) => ({
   previewUrl: null,
   isUploading: false,
   progress: 0,
+  uploadProgress: 0,
   setSelectedFile: (file) => set({ selectedFile: file }),
   setPreviewUrl: (url) => set({ previewUrl: url }),
   setIsUploading: (uploading) => set({ isUploading: uploading }),
-  setProgress: (progress) => set({ progress }),
+  setProgress: (progress) => set({ progress, uploadProgress: progress }),
+  setUploadProgress: (progress) => set({ progress, uploadProgress: progress }),
   reset: () =>
     set({
       selectedFile: null,
       previewUrl: null,
       isUploading: false,
       progress: 0,
+      uploadProgress: 0,
     }),
 }));
 
@@ -73,13 +79,15 @@ export const useUploadStore = create<UploadState>()((set) => ({
 // LOCATION STORE
 // ============================================================================
 
-interface LocationState {
+export interface LocationState {
   latitude: number | null;
   longitude: number | null;
   address: string | null;
   isLoading: boolean;
   error: string | null;
+  currentLocation: { lat: number; lng: number } | null;
   setLocation: (lat: number, lng: number) => void;
+  setCurrentLocation: (location: { lat: number; lng: number } | null) => void;
   setAddress: (address: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -92,7 +100,18 @@ export const useLocationStore = create<LocationState>()((set) => ({
   address: null,
   isLoading: false,
   error: null,
-  setLocation: (lat, lng) => set({ latitude: lat, longitude: lng, error: null }),
+  currentLocation: null,
+  setLocation: (lat, lng) => set({ 
+    latitude: lat, 
+    longitude: lng, 
+    currentLocation: { lat, lng },
+    error: null 
+  }),
+  setCurrentLocation: (location) => set({ 
+    currentLocation: location,
+    latitude: location?.lat ?? null,
+    longitude: location?.lng ?? null,
+  }),
   setAddress: (address) => set({ address }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
@@ -109,6 +128,10 @@ export const useLocationStore = create<LocationState>()((set) => ({
         set({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
+          currentLocation: { 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude 
+          },
           isLoading: false,
         });
       },
@@ -164,3 +187,33 @@ export const useNotificationStore = create<NotificationState>()((set) => ({
     })),
   clearNotifications: () => set({ notifications: [] }),
 }));
+
+// ============================================================================
+// AUTH STORE
+// ============================================================================
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  setUser: (user: User) => void;
+  clearUser: () => void;
+  setLoading: (loading: boolean) => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+      clearUser: () => set({ user: null, isAuthenticated: false, isLoading: false }),
+      setLoading: (loading) => set({ isLoading: loading }),
+    }),
+    {
+      name: 'smart-waste-auth',
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+    }
+  )
+);

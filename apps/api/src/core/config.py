@@ -49,8 +49,8 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="postgresql+asyncpg://ecowaste:ecowaste@localhost:5432/ecowaste",
-        description="Database connection URL",
+        default="postgresql+asyncpg://smartwaste:smartwaste_dev@localhost:5432/smartwaste",
+        description="Database connection URL (PostgreSQL)",
     )
     database_pool_size: int = Field(
         default=20, ge=5, le=100, description="Database connection pool size"
