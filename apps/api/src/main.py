@@ -93,22 +93,25 @@ app = FastAPI(
 )
 
 
-# Add rate limiting middleware
+# Add CORS middleware FIRST (middleware order is reversed in FastAPI - last added runs first)
+# This ensures CORS headers are added to all responses including errors
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,  # Cache preflight requests for 10 minutes
+)
+
+
+# Add rate limiting middleware (runs after CORS)
 from src.core.middleware import RateLimitMiddleware
 app.add_middleware(
     RateLimitMiddleware,
     requests_per_minute=settings.rate_limit_requests_per_minute,
     burst_size=settings.rate_limit_burst,
-)
-
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
 )
 
 

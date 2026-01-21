@@ -88,7 +88,8 @@ class AuthService:
         )
 
         self.session.add(user)
-        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(user)
 
         logger.info(
             "User registered",
@@ -119,7 +120,8 @@ class AuthService:
         )
 
         self.session.add(profile)
-        await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(user)
 
         logger.info("Driver registered", user_id=str(user.id))
 

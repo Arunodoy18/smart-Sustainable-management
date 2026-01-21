@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         default="http://localhost:3000", description="Frontend URL for CORS"
     )
     allowed_origins: str = Field(
-        default="http://localhost:3000,http://localhost:5173",
+        default="https://wastifi.netlify.app,http://localhost:3000,http://localhost:5173,http://localhost:8080",
         description="Comma-separated list of allowed CORS origins",
     )
 
