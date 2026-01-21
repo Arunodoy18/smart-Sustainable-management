@@ -33,79 +33,99 @@ if TYPE_CHECKING:
 
 
 class WasteCategory(str, enum.Enum):
-    """Primary waste categories."""
+    """Primary waste categories.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    ORGANIC = "organic"
-    RECYCLABLE = "recyclable"
-    HAZARDOUS = "hazardous"
-    ELECTRONIC = "electronic"
-    GENERAL = "general"
-    MEDICAL = "medical"
+    ORGANIC = "ORGANIC"
+    RECYCLABLE = "RECYCLABLE"
+    HAZARDOUS = "HAZARDOUS"
+    ELECTRONIC = "ELECTRONIC"
+    GENERAL = "GENERAL"
+    MEDICAL = "MEDICAL"
 
 
 class WasteSubCategory(str, enum.Enum):
-    """Detailed waste subcategories."""
+    """Detailed waste subcategories.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
     # Organic
-    FOOD_WASTE = "food_waste"
-    GARDEN_WASTE = "garden_waste"
+    FOOD_WASTE = "FOOD_WASTE"
+    GARDEN_WASTE = "GARDEN_WASTE"
     
     # Recyclable
-    PLASTIC = "plastic"
-    PAPER = "paper"
-    GLASS = "glass"
-    METAL = "metal"
-    CARDBOARD = "cardboard"
+    PLASTIC = "PLASTIC"
+    PAPER = "PAPER"
+    GLASS = "GLASS"
+    METAL = "METAL"
+    CARDBOARD = "CARDBOARD"
     
     # Hazardous
-    CHEMICALS = "chemicals"
-    BATTERIES = "batteries"
-    PAINT = "paint"
-    OIL = "oil"
+    CHEMICALS = "CHEMICALS"
+    BATTERIES = "BATTERIES"
+    PAINT = "PAINT"
+    OIL = "OIL"
     
     # Electronic
-    SMALL_ELECTRONICS = "small_electronics"
-    LARGE_APPLIANCES = "large_appliances"
-    CABLES = "cables"
+    SMALL_ELECTRONICS = "SMALL_ELECTRONICS"
+    LARGE_APPLIANCES = "LARGE_APPLIANCES"
+    CABLES = "CABLES"
     
     # Medical
-    SHARPS = "sharps"
-    PHARMACEUTICALS = "pharmaceuticals"
+    SHARPS = "SHARPS"
+    PHARMACEUTICALS = "PHARMACEUTICALS"
     
     # General
-    MIXED = "mixed"
-    TEXTILES = "textiles"
-    FURNITURE = "furniture"
+    MIXED = "MIXED"
+    TEXTILES = "TEXTILES"
+    FURNITURE = "FURNITURE"
 
 
 class BinType(str, enum.Enum):
-    """Waste bin types for disposal."""
+    """Waste bin types for disposal.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    GREEN = "green"  # Organic
-    BLUE = "blue"  # Recyclables
-    RED = "red"  # Hazardous
-    BLACK = "black"  # General
-    YELLOW = "yellow"  # Medical
-    SPECIAL = "special"  # Special collection required
+    GREEN = "GREEN"  # Organic
+    BLUE = "BLUE"  # Recyclables
+    RED = "RED"  # Hazardous
+    BLACK = "BLACK"  # General
+    YELLOW = "YELLOW"  # Medical
+    SPECIAL = "SPECIAL"  # Special collection required
 
 
 class ClassificationConfidence(str, enum.Enum):
-    """AI classification confidence tiers."""
+    """AI classification confidence tiers.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    HIGH = "high"  # >= 85% - Auto actionable
-    MEDIUM = "medium"  # 60-84% - Verify category
-    LOW = "low"  # < 60% - Manual handling
+    HIGH = "HIGH"  # >= 85% - Auto actionable
+    MEDIUM = "MEDIUM"  # 60-84% - Verify category
+    LOW = "LOW"  # < 60% - Manual handling
 
 
 class WasteEntryStatus(str, enum.Enum):
-    """Status of waste entry."""
+    """Status of waste entry.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    PENDING = "pending"  # Just submitted
-    CLASSIFIED = "classified"  # AI classification done
-    VERIFIED = "verified"  # User/admin verified
-    PICKUP_REQUESTED = "pickup_requested"  # Pickup scheduled
-    COLLECTED = "collected"  # Waste collected
-    CANCELLED = "cancelled"  # Entry cancelled
+    PENDING = "PENDING"  # Just submitted
+    CLASSIFIED = "CLASSIFIED"  # AI classification done
+    VERIFIED = "VERIFIED"  # User/admin verified
+    PICKUP_REQUESTED = "PICKUP_REQUESTED"  # Pickup scheduled
+    COLLECTED = "COLLECTED"  # Waste collected
+    CANCELLED = "CANCELLED"  # Entry cancelled
 
 
 class WasteEntry(Base):

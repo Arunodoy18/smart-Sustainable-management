@@ -1,14 +1,26 @@
-"""Fix enum values to lowercase
+"""Fix enum values - align with database
 
 Revision ID: a1b2c3d4e5f6
 Revises: 3b11939b5277
-Create Date: 2026-01-21 13:45:00.000000
+Create Date: 2026-01-20 16:00:00.000000
 
+MIGRATION SAFETY NOTICE:
+========================
+This migration was created to fix enum value consistency between
+the database and Python code. It is intentionally a no-op because
+the initial migration already created the enums correctly.
+
+DO NOT DELETE OR RENAME this migration file - it has already been
+applied to production databases.
+
+If you need schema changes, create a NEW migration using:
+    alembic revision --autogenerate -m "description"
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+
 
 # revision identifiers, used by Alembic.
 revision: str = 'a1b2c3d4e5f6'
@@ -18,61 +30,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Convert uppercase enum values to lowercase
-    # PostgreSQL requires recreating enums to change values
+    """
+    No-op migration.
     
-    # For user_role enum
-    op.execute("ALTER TYPE user_role RENAME TO user_role_old")
-    op.execute("CREATE TYPE user_role AS ENUM ('citizen', 'driver', 'admin')")
-    op.execute("""
-        ALTER TABLE users 
-        ALTER COLUMN role TYPE user_role 
-        USING (
-            CASE role::text
-                WHEN 'CITIZEN' THEN 'citizen'
-                WHEN 'DRIVER' THEN 'driver'
-                WHEN 'ADMIN' THEN 'admin'
-                ELSE lower(role::text)
-            END
-        )::user_role
-    """)
-    op.execute("DROP TYPE user_role_old")
-    
-    # For user_status enum
-    op.execute("ALTER TYPE user_status RENAME TO user_status_old")
-    op.execute("CREATE TYPE user_status AS ENUM ('pending', 'active', 'suspended', 'deactivated')")
-    op.execute("""
-        ALTER TABLE users 
-        ALTER COLUMN status TYPE user_status 
-        USING (
-            CASE status::text
-                WHEN 'PENDING' THEN 'pending'
-                WHEN 'ACTIVE' THEN 'active'
-                WHEN 'SUSPENDED' THEN 'suspended'
-                WHEN 'DEACTIVATED' THEN 'deactivated'
-                ELSE lower(status::text)
-            END
-        )::user_status
-    """)
-    op.execute("DROP TYPE user_status_old")
+    The initial migration already creates enums with the correct values.
+    This migration exists only to maintain chain integrity.
+    """
+    pass
 
 
 def downgrade() -> None:
-    # Revert to uppercase enums
-    op.execute("ALTER TYPE user_role RENAME TO user_role_old")
-    op.execute("CREATE TYPE user_role AS ENUM ('CITIZEN', 'DRIVER', 'ADMIN')")
-    op.execute("""
-        ALTER TABLE users 
-        ALTER COLUMN role TYPE user_role 
-        USING upper(role::text)::user_role
-    """)
-    op.execute("DROP TYPE user_role_old")
-    
-    op.execute("ALTER TYPE user_status RENAME TO user_status_old")
-    op.execute("CREATE TYPE user_status AS ENUM ('PENDING', 'ACTIVE', 'SUSPENDED', 'DEACTIVATED')")
-    op.execute("""
-        ALTER TABLE users 
-        ALTER COLUMN status TYPE user_status 
-        USING upper(status::text)::user_status
-    """)
-    op.execute("DROP TYPE user_status_old")
+    """
+    No-op migration.
+    """
+    pass

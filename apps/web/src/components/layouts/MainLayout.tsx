@@ -63,7 +63,7 @@ export function MainLayout() {
           {/* Auth Buttons */}
           <div className="hidden lg:flex lg:items-center lg:gap-4">
             {isAuthenticated ? (
-              <Link to={user?.role === 'admin' ? '/admin' : user?.role === 'driver' ? '/driver' : '/dashboard'}>
+              <Link to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'}>
                 <Button>Go to Dashboard</Button>
               </Link>
             ) : (

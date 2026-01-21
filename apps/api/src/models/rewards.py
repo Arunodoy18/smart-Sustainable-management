@@ -32,26 +32,34 @@ if TYPE_CHECKING:
 
 
 class RewardType(str, enum.Enum):
-    """Types of rewards users can earn."""
+    """Types of rewards users can earn.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    RECYCLING_POINTS = "recycling_points"
-    STREAK_BONUS = "streak_bonus"
-    FIRST_SORT_BONUS = "first_sort_bonus"
-    REFERRAL_BONUS = "referral_bonus"
-    ACHIEVEMENT_UNLOCK = "achievement_unlock"
-    PICKUP_COMPLETION = "pickup_completion"  # For drivers
-    ON_TIME_BONUS = "on_time_bonus"  # For drivers
-    CLEAN_COLLECTION = "clean_collection"  # For drivers
+    RECYCLING_POINTS = "RECYCLING_POINTS"
+    STREAK_BONUS = "STREAK_BONUS"
+    FIRST_SORT_BONUS = "FIRST_SORT_BONUS"
+    REFERRAL_BONUS = "REFERRAL_BONUS"
+    ACHIEVEMENT_UNLOCK = "ACHIEVEMENT_UNLOCK"
+    PICKUP_COMPLETION = "PICKUP_COMPLETION"  # For drivers
+    ON_TIME_BONUS = "ON_TIME_BONUS"  # For drivers
+    CLEAN_COLLECTION = "CLEAN_COLLECTION"  # For drivers
 
 
 class AchievementCategory(str, enum.Enum):
-    """Achievement categories."""
+    """Achievement categories.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    RECYCLING = "recycling"
-    CONSISTENCY = "consistency"
-    COMMUNITY = "community"
-    ENVIRONMENTAL = "environmental"
-    DRIVER_PERFORMANCE = "driver_performance"
+    RECYCLING = "RECYCLING"
+    CONSISTENCY = "CONSISTENCY"
+    COMMUNITY = "COMMUNITY"
+    ENVIRONMENTAL = "ENVIRONMENTAL"
+    DRIVER_PERFORMANCE = "DRIVER_PERFORMANCE"
 
 
 class Reward(Base):

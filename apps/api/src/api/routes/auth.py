@@ -15,6 +15,7 @@ from src.api.deps import (
     get_client_ip,
     get_user_agent,
 )
+from src.core.logging import get_logger
 from src.models.user import UserRole
 from src.schemas.user import (
     DriverRegistration,
@@ -33,6 +34,7 @@ from src.schemas.common import SuccessResponse
 from src.services import AuthenticationError, AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = get_logger(__name__)
 
 
 @router.post(
@@ -46,18 +48,37 @@ async def register(
     data: UserCreate,
     session: DbSession,
 ):
-    """Register a new user account."""
+    """
+    Register a new user account.
+    
+    Returns:
+        201: User successfully created
+        400: Email already exists or invalid data
+        422: Request validation failed
+        
+    Note: All database errors are caught and returned as 400.
+          This endpoint never returns 500 for user errors.
+    """
     # Force citizen role for public registration
     data.role = UserRole.CITIZEN
     
     try:
         auth_service = AuthService(session)
         user = await auth_service.register_user(data)
+        logger.info(f"Successfully registered user: {user.email}")
         return user
     except AuthenticationError as e:
+        logger.info(f"Registration failed: {str(e)} for email: {data.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        )
+    except Exception as e:
+        # Catch-all for any unexpected errors (should never happen with proper service layer)
+        logger.error(f"Unexpected error in register endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration failed. Please try again.",
         )
 
 
@@ -72,15 +93,30 @@ async def register_driver(
     data: DriverRegistration,
     session: DbSession,
 ):
-    """Register a new driver account."""
+    """
+    Register a new driver account.
+    
+    Returns:
+        201: Driver account created (pending approval)
+        400: Email already exists or invalid data
+        422: Request validation failed
+    """
     try:
         auth_service = AuthService(session)
         user = await auth_service.register_driver(data)
+        logger.info(f"Successfully registered driver: {user.email}")
         return user
     except AuthenticationError as e:
+        logger.info(f"Driver registration failed: {str(e)} for email: {data.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in register_driver endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Driver registration failed. Please try again.",
         )
 
 
@@ -96,7 +132,14 @@ async def login(
     client_ip: Annotated[str | None, Depends(get_client_ip)] = None,
     user_agent: Annotated[str | None, Depends(get_user_agent)] = None,
 ):
-    """Authenticate user and return tokens."""
+    """
+    Authenticate user and return tokens.
+    
+    Returns:
+        200: Login successful with access/refresh tokens
+        401: Invalid credentials or account not active
+        422: Request validation failed
+    """
     try:
         auth_service = AuthService(session)
         tokens = await auth_service.login(
@@ -104,11 +147,19 @@ async def login(
             device_info=user_agent,
             ip_address=client_ip,
         )
+        logger.info(f"User logged in successfully: {data.email}")
         return tokens
     except AuthenticationError as e:
+        logger.info(f"Login failed: {str(e)} for email: {data.email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in login endpoint: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Login failed. Please try again.",
         )
 
 

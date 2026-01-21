@@ -51,11 +51,11 @@ export function useLogin(): UseMutationResult<TokenResponse, AxiosError<ErrorRes
       }
       toast.success('Welcome back!');
       
-      // Redirect based on role
-      const role = data.user?.role || 'citizen';
-      if (role === 'admin') {
+      // Redirect based on role (API returns UPPERCASE enum values)
+      const role = data.user?.role || 'CITIZEN';
+      if (role === 'ADMIN') {
         navigate('/admin');
-      } else if (role === 'driver') {
+      } else if (role === 'DRIVER') {
         navigate('/driver');
       } else {
         navigate('/dashboard');

@@ -24,15 +24,13 @@ import { Card, Button, Badge, Modal, Spinner, EmptyState } from '@/components/ui
 import type { Pickup, PickupStatus } from '@/types';
 
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
-  pending: { label: 'Pending', variant: 'warning' },
-  assigned: { label: 'Assigned', variant: 'default' },
-  scheduled: { label: 'Scheduled', variant: 'default' },
-  en_route: { label: 'En Route', variant: 'default' },
-  arrived: { label: 'Arrived', variant: 'success' },
-  in_progress: { label: 'In Progress', variant: 'default' },
-  completed: { label: 'Completed', variant: 'success' },
-  cancelled: { label: 'Cancelled', variant: 'secondary' },
-  failed: { label: 'Failed', variant: 'danger' },
+  REQUESTED: { label: 'Requested', variant: 'warning' },
+  ASSIGNED: { label: 'Assigned', variant: 'default' },
+  EN_ROUTE: { label: 'En Route', variant: 'default' },
+  ARRIVED: { label: 'Arrived', variant: 'success' },
+  COLLECTED: { label: 'Collected', variant: 'success' },
+  CANCELLED: { label: 'Cancelled', variant: 'secondary' },
+  FAILED: { label: 'Failed', variant: 'danger' },
 };
 
 export function DriverPickupsPage() {
@@ -71,9 +69,9 @@ export function DriverPickupsPage() {
     },
   });
 
-  const assignedPickups = pickups?.filter((p) => p.status === 'assigned') || [];
-  const inProgressPickups = pickups?.filter((p) => p.status === 'in_progress') || [];
-  const completedPickups = pickups?.filter((p) => p.status === 'completed') || [];
+  const assignedPickups = pickups?.filter((p) => p.status === 'ASSIGNED') || [];
+  const inProgressPickups = pickups?.filter((p) => p.status === 'EN_ROUTE') || [];
+  const completedPickups = pickups?.filter((p) => p.status === 'COLLECTED') || [];
 
   if (isLoading) {
     return (
@@ -330,7 +328,7 @@ export function DriverPickupsPage() {
 
             {/* Actions */}
             <div className="flex gap-3 border-t border-gray-200 pt-4">
-              {selectedPickup.status === 'assigned' && (
+              {selectedPickup.status === 'ASSIGNED' && (
                 <Button
                   className="flex-1"
                   leftIcon={<PlayIcon className="h-5 w-5" />}
@@ -340,7 +338,7 @@ export function DriverPickupsPage() {
                   Start Pickup
                 </Button>
               )}
-              {selectedPickup.status === 'in_progress' && (
+              {selectedPickup.status === 'EN_ROUTE' && (
                 <Button
                   className="flex-1"
                   variant="success"

@@ -36,15 +36,13 @@ const pickupSchema = z.object({
 type PickupFormData = z.infer<typeof pickupSchema>;
 
 const STATUS_CONFIG: Record<PickupStatus, { label: string; color: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', variant: 'warning' },
-  assigned: { label: 'Assigned', color: 'bg-blue-100 text-blue-700', variant: 'default' },
-  scheduled: { label: 'Scheduled', color: 'bg-blue-100 text-blue-700', variant: 'default' },
-  en_route: { label: 'En Route', color: 'bg-blue-100 text-blue-700', variant: 'default' },
-  arrived: { label: 'Arrived', color: 'bg-green-100 text-green-700', variant: 'success' },
-  in_progress: { label: 'In Progress', color: 'bg-primary-100 text-primary-700', variant: 'default' },
-  completed: { label: 'Completed', color: 'bg-green-100 text-green-700', variant: 'success' },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-700', variant: 'secondary' },
-  failed: { label: 'Failed', color: 'bg-red-100 text-red-700', variant: 'danger' },
+  REQUESTED: { label: 'Requested', color: 'bg-yellow-100 text-yellow-700', variant: 'warning' },
+  ASSIGNED: { label: 'Assigned', color: 'bg-blue-100 text-blue-700', variant: 'default' },
+  EN_ROUTE: { label: 'En Route', color: 'bg-blue-100 text-blue-700', variant: 'default' },
+  ARRIVED: { label: 'Arrived', color: 'bg-green-100 text-green-700', variant: 'success' },
+  COLLECTED: { label: 'Collected', color: 'bg-green-100 text-green-700', variant: 'success' },
+  CANCELLED: { label: 'Cancelled', color: 'bg-gray-100 text-gray-700', variant: 'secondary' },
+  FAILED: { label: 'Failed', color: 'bg-red-100 text-red-700', variant: 'danger' },
 };
 
 const WASTE_TYPES = [
@@ -133,9 +131,9 @@ export function PickupsPage() {
     createPickup.mutate(data);
   };
 
-  const activePickups = pickups?.filter((p) => ['pending', 'assigned', 'in_progress'].includes(p.status)) || [];
-  const completedPickups = pickups?.filter((p) => p.status === 'completed') || [];
-  const cancelledPickups = pickups?.filter((p) => p.status === 'cancelled') || [];
+  const activePickups = pickups?.filter((p) => ['REQUESTED', 'ASSIGNED', 'EN_ROUTE'].includes(p.status)) || [];
+  const completedPickups = pickups?.filter((p) => p.status === 'COLLECTED') || [];
+  const cancelledPickups = pickups?.filter((p) => p.status === 'CANCELLED') || [];
 
   const getMinDate = () => {
     const tomorrow = new Date();
@@ -450,7 +448,7 @@ function PickupCard({
             </div>
           </div>
 
-          {pickup.status === 'pending' && onCancel && (
+          {pickup.status === 'REQUESTED' && onCancel && (
             <Button
               variant="outline"
               size="sm"

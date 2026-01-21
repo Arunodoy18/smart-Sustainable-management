@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.cache import cache
@@ -67,7 +68,7 @@ class AuthService:
             Created user
             
         Raises:
-            AuthenticationError: If email already exists
+            AuthenticationError: If email already exists or database constraint violated
         """
         # Check if email exists
         existing = await self.session.execute(
@@ -88,8 +89,26 @@ class AuthService:
         )
 
         self.session.add(user)
-        await self.session.commit()
-        await self.session.refresh(user)
+        
+        try:
+            await self.session.commit()
+            await self.session.refresh(user)
+        except IntegrityError as e:
+            await self.session.rollback()
+            logger.warning(f"Integrity error during user registration: {e}")
+            # Race condition: email was registered between our check and commit
+            if "email" in str(e).lower() or "unique" in str(e).lower():
+                raise AuthenticationError("Email already registered") from e
+            # Other constraint violations (e.g., invalid enum values)
+            raise AuthenticationError("Invalid user data") from e
+        except DBAPIError as e:
+            await self.session.rollback()
+            logger.error(f"Database error during user registration: {e}")
+            raise AuthenticationError("Registration failed due to database error") from e
+        except Exception as e:
+            await self.session.rollback()
+            logger.error(f"Unexpected error during user registration: {e}")
+            raise AuthenticationError("Registration failed") from e
 
         logger.info(
             "User registered",

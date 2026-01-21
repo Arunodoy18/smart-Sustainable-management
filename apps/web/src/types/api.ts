@@ -38,8 +38,12 @@ export interface ErrorResponse {
 // AUTH
 // ============================================================================
 
-export type UserRole = 'citizen' | 'driver' | 'admin';
-export type UserStatus = 'active' | 'inactive' | 'suspended' | 'pending' | 'deleted';
+/**
+ * IMPORTANT: These enum values MUST match the backend PostgreSQL enum values.
+ * The backend uses UPPERCASE values for all enums.
+ */
+export type UserRole = 'CITIZEN' | 'DRIVER' | 'ADMIN';
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
 
 export interface User {
   id: string;
@@ -90,25 +94,27 @@ export interface TokenResponse {
 // WASTE
 // ============================================================================
 
+/**
+ * IMPORTANT: These enum values MUST match the backend PostgreSQL enum values.
+ * The backend uses UPPERCASE values for all enums.
+ */
 export type WasteCategory =
-  | 'recyclable'
-  | 'organic'
-  | 'hazardous'
-  | 'electronic'
-  | 'general'
-  | 'medical'
-  | 'construction';
+  | 'RECYCLABLE'
+  | 'ORGANIC'
+  | 'HAZARDOUS'
+  | 'ELECTRONIC'
+  | 'GENERAL'
+  | 'MEDICAL';
 
 export type BinType =
-  | 'green'
-  | 'blue'
-  | 'black'
-  | 'yellow'
-  | 'red'
-  | 'brown'
-  | 'special';
+  | 'GREEN'
+  | 'BLUE'
+  | 'BLACK'
+  | 'YELLOW'
+  | 'RED'
+  | 'SPECIAL';
 
-export type ConfidenceTier = 'high' | 'medium' | 'low';
+export type ConfidenceTier = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface Classification {
   category: WasteCategory;
@@ -169,16 +175,17 @@ export interface ImpactStats {
 // PICKUP
 // ============================================================================
 
+/**
+ * IMPORTANT: These enum values MUST match the backend PostgreSQL enum values.
+ */
 export type PickupStatus =
-  | 'pending'
-  | 'scheduled'
-  | 'assigned'
-  | 'in_progress'
-  | 'en_route'
-  | 'arrived'
-  | 'completed'
-  | 'cancelled'
-  | 'failed';
+  | 'REQUESTED'
+  | 'ASSIGNED'
+  | 'EN_ROUTE'
+  | 'ARRIVED'
+  | 'COLLECTED'
+  | 'CANCELLED'
+  | 'FAILED';
 
 export interface Pickup {
   id: string;

@@ -35,33 +35,45 @@ if TYPE_CHECKING:
 
 
 class DriverStatus(str, enum.Enum):
-    """Driver account status."""
+    """Driver account status.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    PENDING_APPROVAL = "pending_approval"
-    APPROVED = "approved"
-    SUSPENDED = "suspended"
-    INACTIVE = "inactive"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
+    SUSPENDED = "SUSPENDED"
+    INACTIVE = "INACTIVE"
 
 
 class PickupStatus(str, enum.Enum):
-    """Pickup request status."""
+    """Pickup request status.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    REQUESTED = "requested"
-    ASSIGNED = "assigned"
-    EN_ROUTE = "en_route"
-    ARRIVED = "arrived"
-    COLLECTED = "collected"
-    CANCELLED = "cancelled"
-    FAILED = "failed"
+    REQUESTED = "REQUESTED"
+    ASSIGNED = "ASSIGNED"
+    EN_ROUTE = "EN_ROUTE"
+    ARRIVED = "ARRIVED"
+    COLLECTED = "COLLECTED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
 
 
 class PickupPriority(str, enum.Enum):
-    """Pickup priority level."""
+    """Pickup priority level.
+    
+    IMPORTANT: Values MUST be UPPERCASE to match PostgreSQL enum values.
+    DO NOT change these values - they are used in production databases.
+    """
 
-    LOW = "low"
-    NORMAL = "normal"
-    HIGH = "high"
-    URGENT = "urgent"
+    LOW = "LOW"
+    NORMAL = "NORMAL"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
 
 
 class DriverProfile(Base):
