@@ -25,18 +25,18 @@ if TYPE_CHECKING:
 class UserRole(str, enum.Enum):
     """User role enumeration."""
 
-    CITIZEN = "citizen"
-    DRIVER = "driver"
-    ADMIN = "admin"
+    CITIZEN = "CITIZEN"
+    DRIVER = "DRIVER"
+    ADMIN = "ADMIN"
 
 
 class UserStatus(str, enum.Enum):
     """User account status."""
 
-    PENDING = "pending"  # Awaiting email verification
-    ACTIVE = "active"  # Fully active account
-    SUSPENDED = "suspended"  # Temporarily suspended
-    DEACTIVATED = "deactivated"  # Self-deactivated
+    PENDING = "PENDING"  # Awaiting email verification
+    ACTIVE = "ACTIVE"  # Fully active account
+    SUSPENDED = "SUSPENDED"  # Temporarily suspended
+    DEACTIVATED = "DEACTIVATED"  # Self-deactivated
 
 
 class User(Base):
