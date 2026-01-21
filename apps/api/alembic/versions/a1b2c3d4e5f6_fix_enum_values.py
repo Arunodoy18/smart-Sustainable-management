@@ -1,8 +1,8 @@
 """Fix enum values to lowercase
 
-Revision ID: fix_enum_001
+Revision ID: a1b2c3d4e5f6
 Revises: 3b11939b5277
-Create Date: 2026-01-21
+Create Date: 2026-01-21 13:45:00.000000
 
 """
 from typing import Sequence, Union
@@ -11,14 +11,14 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = 'fix_enum_001'
+revision: str = 'a1b2c3d4e5f6'
 down_revision: Union[str, None] = '3b11939b5277'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Check current enum values and update if needed
+    # Convert uppercase enum values to lowercase
     # PostgreSQL requires recreating enums to change values
     
     # For user_role enum
@@ -32,7 +32,7 @@ def upgrade() -> None:
                 WHEN 'CITIZEN' THEN 'citizen'
                 WHEN 'DRIVER' THEN 'driver'
                 WHEN 'ADMIN' THEN 'admin'
-                ELSE role::text
+                ELSE lower(role::text)
             END
         )::user_role
     """)
@@ -50,7 +50,7 @@ def upgrade() -> None:
                 WHEN 'ACTIVE' THEN 'active'
                 WHEN 'SUSPENDED' THEN 'suspended'
                 WHEN 'DEACTIVATED' THEN 'deactivated'
-                ELSE status::text
+                ELSE lower(status::text)
             END
         )::user_status
     """)
@@ -64,14 +64,7 @@ def downgrade() -> None:
     op.execute("""
         ALTER TABLE users 
         ALTER COLUMN role TYPE user_role 
-        USING (
-            CASE role::text
-                WHEN 'citizen' THEN 'CITIZEN'
-                WHEN 'driver' THEN 'DRIVER'
-                WHEN 'admin' THEN 'ADMIN'
-                ELSE role::text
-            END
-        )::user_role
+        USING upper(role::text)::user_role
     """)
     op.execute("DROP TYPE user_role_old")
     
@@ -80,14 +73,6 @@ def downgrade() -> None:
     op.execute("""
         ALTER TABLE users 
         ALTER COLUMN status TYPE user_status 
-        USING (
-            CASE status::text
-                WHEN 'pending' THEN 'PENDING'
-                WHEN 'active' THEN 'ACTIVE'
-                WHEN 'suspended' THEN 'SUSPENDED'
-                WHEN 'deactivated' THEN 'DEACTIVATED'
-                ELSE status::text
-            END
-        )::user_status
+        USING upper(status::text)::user_status
     """)
     op.execute("DROP TYPE user_status_old")
