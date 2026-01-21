@@ -8,8 +8,8 @@ services:
     runtime: docker
     region: oregon
     plan: free
-    dockerfilePath: ./Dockerfile
-    dockerContext: ./
+    healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.7"
