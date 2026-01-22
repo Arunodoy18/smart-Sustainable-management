@@ -15,7 +15,7 @@ import {
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 
-import { useAuth, api, formatDate } from '@/lib';
+import { api, formatDate } from '@/lib';
 import { Card, StatsCard, Button, Badge, Spinner } from '@/components/ui';
 import type { Pickup, PickupStatus } from '@/types';
 
@@ -37,7 +37,13 @@ const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 
 };
 
 export function DriverDashboardPage() {
-  const { user } = useAuth();
+  // Mock driver user for public access
+  const user = {
+    first_name: 'Driver',
+    last_name: 'Guest',
+    email: 'driver@example.com',
+    role: 'DRIVER',
+  };
 
   // Fetch driver stats
   const { data: stats, isLoading: loadingStats } = useQuery({

@@ -15,12 +15,17 @@ import {
   GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 
-import { useAuth, api } from '@/lib';
+import { api } from '@/lib';
 import { Card, StatsCard, Button, Badge, Progress, LoadingInline } from '@/components/ui';
 import type { RewardSummary, ImpactStats, WasteEntry } from '@/types';
 
 export function DashboardPage() {
-  const { user } = useAuth();
+  // Mock user for public access
+  const user = {
+    first_name: 'Guest',
+    last_name: 'User',
+    email: 'guest@example.com',
+  };
 
   // Fetch reward summary
   const { data: rewards, isLoading: loadingRewards } = useQuery({

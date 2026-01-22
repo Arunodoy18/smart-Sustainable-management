@@ -18,7 +18,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
-import { useAuth, api, cn } from '@/lib';
+import { api, cn } from '@/lib';
 import { Card, Button, Input, Avatar } from '@/components/ui';
 
 const profileSchema = z.object({
@@ -48,7 +48,16 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  // Mock user for public access
+  const user = {
+    first_name: 'Guest',
+    last_name: 'User',
+    email: 'guest@example.com',
+    phone: '',
+    address: '',
+    avatar_url: undefined,
+    role: 'CITIZEN',
+  };
   const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -75,7 +84,6 @@ export function ProfilePage() {
       await api.patch('/api/v1/auth/profile', data);
     },
     onSuccess: async () => {
-      await refreshUser();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     },
