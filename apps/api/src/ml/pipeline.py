@@ -25,6 +25,30 @@ from src.models.waste import ClassificationConfidence
 logger = get_logger(__name__)
 
 
+def _create_default_classifier() -> BaseClassifier:
+    """Create default classifier based on configuration."""
+    if settings.use_clip_classifier:
+        try:
+            from src.ml.classifiers.clip_classifier import CLIPWasteClassifier
+            
+            logger.info(
+                "Using CLIP classifier",
+                model_id=settings.clip_model_id,
+                device=settings.clip_device or "auto",
+            )
+            return CLIPWasteClassifier(device=settings.clip_device)
+        except Exception as e:
+            logger.error(
+                "Failed to initialize CLIP classifier, falling back to mock",
+                error=str(e),
+                exc_info=True,
+            )
+            return MockWasteClassifier()
+    else:
+        logger.info("Using mock classifier for development")
+        return MockWasteClassifier()
+
+
 class ClassificationPipeline:
     """
     Multi-stage waste classification pipeline.
@@ -60,12 +84,12 @@ class ClassificationPipeline:
         Initialize the pipeline with components.
         
         Args:
-            classifier: Primary waste classifier (defaults to mock)
+            classifier: Primary waste classifier (defaults to auto-selected based on config)
             safety_validator: Safety validation model (defaults to mock)
             confidence_engine: Confidence tier calculator
             segregation_engine: Bin type mapper
         """
-        self.classifier = classifier or MockWasteClassifier()
+        self.classifier = classifier or _create_default_classifier()
         self.safety_validator = safety_validator or MockSafetyValidator()
         
         self.confidence_engine = confidence_engine or ConfidenceEngine(

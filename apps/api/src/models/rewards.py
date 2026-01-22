@@ -46,6 +46,15 @@ class RewardType(str, enum.Enum):
     PICKUP_COMPLETION = "PICKUP_COMPLETION"  # For drivers
     ON_TIME_BONUS = "ON_TIME_BONUS"  # For drivers
     CLEAN_COLLECTION = "CLEAN_COLLECTION"  # For drivers
+    
+    # Aliases for point-values endpoint compatibility
+    WASTE_ENTRY = "RECYCLING_POINTS"  # Alias for waste upload
+    CORRECT_CLASSIFICATION = "FIRST_SORT_BONUS"  # Alias for verified classification
+    PICKUP_COMPLETED = "PICKUP_COMPLETION"  # Alias
+    DAILY_STREAK = "STREAK_BONUS"  # Alias for daily activity
+    WEEKLY_STREAK = "STREAK_BONUS"  # Alias for weekly activity
+    REFERRAL = "REFERRAL_BONUS"  # Alias
+    ACHIEVEMENT = "ACHIEVEMENT_UNLOCK"  # Alias
 
 
 class AchievementCategory(str, enum.Enum):

@@ -106,6 +106,23 @@ class Settings(BaseSettings):
         default=0.60, ge=0.0, le=1.0, description="Medium confidence threshold"
     )
     ml_batch_size: int = Field(default=32, ge=1, le=128, description="ML batch size")
+    
+    # CLIP Model Configuration
+    use_clip_classifier: bool = Field(
+        default=True, description="Use CLIP model for classification (False = mock classifier)"
+    )
+    clip_model_id: str = Field(
+        default="openai/clip-vit-large-patch14",
+        description="HuggingFace model ID for CLIP classifier"
+    )
+    clip_device: str | None = Field(
+        default=None,
+        description="Device for CLIP inference (cuda/cpu/None=auto)"
+    )
+    clip_cache_dir: str | None = Field(
+        default=None,
+        description="Directory to cache CLIP model files"
+    )
 
     # Maps
     mapbox_access_token: str | None = Field(

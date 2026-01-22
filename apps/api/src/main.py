@@ -218,11 +218,17 @@ async def readiness_check():
         logger.error("Cache health check failed", error=str(e))
     
     is_ready = all(checks.values())
+    status_code = status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE
+    
+    # Return 200 with degraded status if cache works but DB doesn't (allows app to start)
+    if checks["cache"] and not checks["database"]:
+        status_code = status.HTTP_200_OK
     
     return JSONResponse(
-        status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        status_code=status_code,
         content={
             "ready": is_ready,
+            "status": "healthy" if is_ready else "degraded",
             "checks": checks,
         },
     )
