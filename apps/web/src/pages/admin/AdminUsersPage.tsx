@@ -66,7 +66,7 @@ export function AdminUsersPage() {
   // Update user status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: UserStatus }) => {
-      await api.patch(`/admin/users/${userId}/status`, { status });
+      await api.patch(`/api/v1/admin/users/${userId}/status`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ADMIN', 'users'] });

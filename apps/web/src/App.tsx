@@ -56,46 +56,71 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <AuthProvider>
             <Routes>
-            {/* Public routes */}
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<LandingPage />} />
-            </Route>
+              {/* Public routes */}
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<LandingPage />} />
+              </Route>
 
-            {/* Redirect old auth routes to dashboard */}
-            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/register" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/forgot-password" element={<Navigate to="/dashboard" replace />} />
+              {/* Auth routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              </Route>
 
-            {/* User dashboard routes - NO AUTH REQUIRED */}
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="upload" element={<UploadPage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="rewards" element={<RewardsPage />} />
-              <Route path="pickups" element={<PickupsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
+              {/* User dashboard routes - PROTECTED */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['CITIZEN']}>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DashboardPage />} />
+                <Route path="upload" element={<UploadPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="rewards" element={<RewardsPage />} />
+                <Route path="pickups" element={<PickupsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
 
-            {/* Driver portal routes - NO AUTH REQUIRED */}
-            <Route path="/driver" element={<DashboardLayout variant="driver" />}>
-              <Route index element={<DriverDashboardPage />} />
-              <Route path="pickups" element={<DriverPickupsPage />} />
-              <Route path="map" element={<DriverMapPage />} />
-            </Route>
+              {/* Driver portal routes - PROTECTED */}
+              <Route
+                path="/driver"
+                element={
+                  <ProtectedRoute allowedRoles={['DRIVER']}>
+                    <DashboardLayout variant="driver" />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<DriverDashboardPage />} />
+                <Route path="pickups" element={<DriverPickupsPage />} />
+                <Route path="map" element={<DriverMapPage />} />
+              </Route>
 
-            {/* Admin portal routes - NO AUTH REQUIRED */}
-            <Route path="/admin" element={<DashboardLayout variant="admin" />}>
-              <Route index element={<AdminDashboardPage />} />
-              <Route path="users" element={<AdminUsersPage />} />
-              <Route path="drivers" element={<AdminDriversPage />} />
-              <Route path="analytics" element={<AdminAnalyticsPage />} />
-            </Route>
+              {/* Admin portal routes - PROTECTED */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <DashboardLayout variant="admin" />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboardPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="drivers" element={<AdminDriversPage />} />
+                <Route path="analytics" element={<AdminAnalyticsPage />} />
+              </Route>
 
-            {/* Catch all */}
-            <Route path="/404" element={<NotFoundPage />} />
-            <Route path="*" element={<Navigate to="/404" replace />} />
-          </Routes>
+              {/* Catch all */}
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
+            </Routes>
+          </AuthProvider>
           
           {/* Global toast notifications */}
           <Toaster

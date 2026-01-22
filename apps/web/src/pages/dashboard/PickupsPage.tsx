@@ -94,7 +94,7 @@ export function PickupsPage() {
   // Cancel pickup mutation
   const cancelPickup = useMutation({
     mutationFn: async (pickupId: string) => {
-      await api.post(`/pickups/${pickupId}/cancel`);
+      await api.post(`/api/v1/pickups/${pickupId}/cancel`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pickups'] });

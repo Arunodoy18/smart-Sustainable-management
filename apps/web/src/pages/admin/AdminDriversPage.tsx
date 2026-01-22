@@ -61,7 +61,7 @@ export function AdminDriversPage() {
   // Toggle availability mutation
   const toggleAvailability = useMutation({
     mutationFn: async ({ driverId, available }: { driverId: string; available: boolean }) => {
-      await api.patch(`/admin/drivers/${driverId}/availability`, { is_available: available });
+      await api.patch(`/api/v1/admin/drivers/${driverId}/availability`, { is_available: available });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ADMIN', 'drivers'] });

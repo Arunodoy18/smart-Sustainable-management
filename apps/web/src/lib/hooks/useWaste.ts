@@ -48,7 +48,7 @@ export function useWasteEntries(params?: WasteEntriesParams): UseQueryResult<Pag
   return useQuery({
     queryKey: [...wasteKeys.entries(), params],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<WasteEntry>>('/waste/entries', { params });
+      const response = await api.get<PaginatedResponse<WasteEntry>>('/api/v1/waste/entries', { params });
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -60,7 +60,7 @@ export function useWasteEntry(id: string | undefined): UseQueryResult<WasteEntry
   return useQuery({
     queryKey: wasteKeys.entry(id!),
     queryFn: async () => {
-      const response = await api.get<WasteEntry>(`/waste/entries/${id}`);
+      const response = await api.get<WasteEntry>(`/api/v1/waste/entries/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -72,7 +72,7 @@ export function useWasteStats(): UseQueryResult<WasteStats, Error> {
   return useQuery({
     queryKey: wasteKeys.stats(),
     queryFn: async () => {
-      const response = await api.get<WasteStats>('/waste/stats');
+      const response = await api.get<WasteStats>('/api/v1/waste/stats');
       return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -84,7 +84,7 @@ export function useRecentWaste(limit = 5): UseQueryResult<WasteEntry[], Error> {
   return useQuery({
     queryKey: wasteKeys.recent(),
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<WasteEntry>>('/waste/entries', {
+      const response = await api.get<PaginatedResponse<WasteEntry>>('/api/v1/waste/entries', {
         params: { limit, page: 1 },
       });
       return response.data.items;
@@ -109,7 +109,7 @@ export function useUploadWaste(): UseMutationResult<WasteClassification, AxiosEr
         formData.append('notes', notes);
       }
 
-      const response = await api.post<WasteClassification>('/waste/upload', formData, {
+      const response = await api.post<WasteClassification>('/api/v1/waste/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -136,7 +136,7 @@ export function useDeleteWaste(): UseMutationResult<void, AxiosError<ErrorRespon
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/waste/entries/${id}`);
+      await api.delete(`/api/v1/waste/entries/${id}`);
     },
     onSuccess: () => {
       toast.success('Entry deleted successfully');

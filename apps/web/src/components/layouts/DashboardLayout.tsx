@@ -27,6 +27,7 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid';
 
 import { Avatar } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth';
 
 interface DashboardLayoutProps {
   variant?: 'citizen' | 'driver' | 'admin';
@@ -58,16 +59,7 @@ const navigationConfig = {
 export function DashboardLayout({ variant = 'citizen' }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-
-  // Mock user for public access
-  const user = {
-    name: 'Guest User',
-    email: 'guest@example.com',
-    role: variant.toUpperCase(),
-    first_name: 'Guest',
-    last_name: 'User',
-    avatar_url: undefined,
-  };
+  const { user, logout } = useAuth();
 
   const navigation = navigationConfig[variant];
 
@@ -283,6 +275,20 @@ export function DashboardLayout({ variant = 'citizen' }: DashboardLayoutProps) {
                           <UserIcon className="h-4 w-4" />
                           Your Profile
                         </NavLink>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => logout()}
+                          className={cn(
+                            active ? 'bg-gray-50' : '',
+                            'flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600'
+                          )}
+                        >
+                          <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+                          Sign out
+                        </button>
                       )}
                     </Menu.Item>
                   </Menu.Items>

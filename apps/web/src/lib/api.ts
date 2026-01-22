@@ -8,9 +8,11 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 import type { TokenResponse, ErrorResponse } from '@/types';
+import { logger } from './logger';
 
-// Get API base URL from environment or use default for local development
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+// Get API base URL from environment (just the backend URL, no /api/v1)
+// All API calls should include /api/v1 in their path
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -71,15 +73,43 @@ api.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log API request
+    logger.apiRequest(
+      config.method?.toUpperCase() || 'GET',
+      config.url || '',
+      config.data
+    );
+    
+    // Add request start time for duration tracking
+    (config as any).requestStartTime = Date.now();
+    
     // If no token, request proceeds without auth header (guest access)
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    logger.error('API Request Error', error);
+    return Promise.reject(error);
+  }
 );
 
 // Response interceptor - handle token refresh (optional, supports guest access)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log successful response
+    const duration = (response.config as any).requestStartTime 
+      ? Date.now() - (response.config as any).requestStartTime 
+      : undefined;
+    
+    logger.apiResponse(
+      response.config.method?.toUpperCase() || 'GET',
+      response.config.url || '',
+      response.status,
+      duration
+    );
+    
+    return response;
+  },
   async (error: AxiosError<ErrorResponse>) => {
     const originalRequest = error.config;
 
@@ -130,12 +160,20 @@ api.interceptors.response.use(
         // Refresh failed - clear tokens and continue as guest
         processQueue(refreshError as Error, null);
         clearTokens();
+        logger.warn('Token refresh failed, continuing as guest');
         // Don't redirect - just continue without auth (guest mode)
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
+
+    // Log API error
+    logger.apiError(
+      originalRequest.method?.toUpperCase() || 'GET',
+      originalRequest.url || '',
+      error
+    );
 
     // For 401 without refresh token, or other errors, just pass through
     // The backend will handle guest access

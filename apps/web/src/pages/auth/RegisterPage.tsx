@@ -6,13 +6,14 @@
  */
 
 import { useState, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+import { useAuth } from '@/lib';
 import { Button, Input } from '@/components/ui';
 
 export function RegisterPage() {
-  const navigate = useNavigate();
+  const { register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [first_name, setFirstName] = useState('');
   const [last_name, setLastName] = useState('');
@@ -57,45 +58,18 @@ export function RegisterPage() {
       return;
     }
 
-    const payload = {
-      first_name,
-      last_name,
-      email,
-      password,
-    };
-
-    console.log('REGISTER PAYLOAD:', payload);
-
     setIsLoading(true);
 
-    // Use relative URL so it works both locally and in production
-    const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
-    const registerUrl = apiUrl.startsWith('http') 
-      ? `${apiUrl}/auth/register`
-      : `${window.location.origin}${apiUrl}/auth/register`;
-
     try {
-      const res = await fetch(registerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+      await register({
+        first_name,
+        last_name,
+        email,
+        password,
       });
-
-      const data = await res.json();
-      console.log('REGISTER RESPONSE:', res.status, data);
-
-      if (!res.ok) {
-        toast.error(data.detail || 'Registration failed');
-        return;
-      }
-
-      toast.success('Registration successful!');
-      navigate('/login');
-    } catch (err) {
-      console.error('REGISTER ERROR:', err);
-      toast.error('Network error');
+      toast.success('Welcome to Smart Waste Management!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
