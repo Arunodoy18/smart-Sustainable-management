@@ -64,32 +64,36 @@ const processQueue = (error: Error | null, token: string | null = null): void =>
   failedQueue = [];
 };
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token if available (optional for public access)
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // If no token, request proceeds without auth header (guest access)
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle token refresh
+// Response interceptor - handle token refresh (optional, supports guest access)
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ErrorResponse>) => {
     const originalRequest = error.config;
 
-    // If no config or already retried, reject
+    // If no config, reject
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    // Check if this is a 401 error and not a retry
+    // Check if this is a 401 error and we have a token to refresh
     const isRetry = (originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry;
-    if (error.response?.status === 401 && !isRetry) {
+    const refreshToken = getRefreshToken();
+    
+    // Only attempt token refresh if we have a refresh token and haven't retried yet
+    if (error.response?.status === 401 && !isRetry && refreshToken) {
       if (isRefreshing) {
         // Wait for the refresh to complete
         return new Promise((resolve, reject) => {
@@ -107,13 +111,6 @@ api.interceptors.response.use(
       (originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true;
       isRefreshing = true;
 
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        clearTokens();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
       try {
         const response = await axios.post<TokenResponse>(`${API_BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
@@ -130,15 +127,18 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
+        // Refresh failed - clear tokens and continue as guest
         processQueue(refreshError as Error, null);
         clearTokens();
-        window.location.href = '/login';
+        // Don't redirect - just continue without auth (guest mode)
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
+    // For 401 without refresh token, or other errors, just pass through
+    // The backend will handle guest access
     return Promise.reject(error);
   }
 );
