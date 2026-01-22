@@ -21,11 +21,11 @@ import type { WasteEntry, WasteCategory } from '@/types';
 
 const CATEGORIES: { value: WasteCategory | ''; label: string }[] = [
   { value: '', label: 'All Categories' },
-  { value: 'recyclable', label: 'Recyclable' },
-  { value: 'organic', label: 'Organic' },
-  { value: 'hazardous', label: 'Hazardous' },
-  { value: 'electronic', label: 'Electronic' },
-  { value: 'general', label: 'General' },
+  { value: 'RECYCLABLE', label: 'RECYCLABLE' },
+  { value: 'ORGANIC', label: 'ORGANIC' },
+  { value: 'HAZARDOUS', label: 'HAZARDOUS' },
+  { value: 'ELECTRONIC', label: 'ELECTRONIC' },
+  { value: 'GENERAL', label: 'GENERAL' },
 ];
 
 const PAGE_SIZE = 10;
@@ -174,7 +174,7 @@ export function HistoryPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="font-semibold capitalize text-gray-900">
-                          {entry.classification?.category?.replace('_', ' ') || 'Pending'}
+                          {entry.classification?.category?.replace('_', ' ') || 'PENDING'}
                         </h3>
                         {entry.classification?.sub_category && (
                           <p className="text-sm capitalize text-gray-600">
@@ -185,9 +185,9 @@ export function HistoryPage() {
                       {entry.classification && (
                         <Badge
                           variant={
-                            entry.classification.confidence_tier === 'high'
+                            entry.classification.confidence_tier === 'HIGH'
                               ? 'success'
-                              : entry.classification.confidence_tier === 'medium'
+                              : entry.classification.confidence_tier === 'MEDIUM'
                               ? 'warning'
                               : 'danger'
                           }
@@ -302,9 +302,9 @@ export function HistoryPage() {
                   {selectedEntry.classification && (
                     <Badge
                       variant={
-                        selectedEntry.classification.confidence_tier === 'high'
+                        selectedEntry.classification.confidence_tier === 'HIGH'
                           ? 'success'
-                          : selectedEntry.classification.confidence_tier === 'medium'
+                          : selectedEntry.classification.confidence_tier === 'MEDIUM'
                           ? 'warning'
                           : 'danger'
                       }
@@ -366,3 +366,4 @@ export function HistoryPage() {
     </div>
   );
 }
+

@@ -14,9 +14,9 @@ export function AuthLayout() {
   // Redirect if already authenticated
   if (isAuthenticated && !isLoading) {
     const roleRedirects = {
-      citizen: '/dashboard',
-      driver: '/driver',
-      admin: '/admin',
+      CITIZEN: '/dashboard',
+      DRIVER: '/driver',
+      ADMIN: '/admin',
     };
     return <Navigate to={roleRedirects[user!.role]} replace />;
   }

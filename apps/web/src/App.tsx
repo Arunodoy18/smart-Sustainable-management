@@ -74,7 +74,7 @@ function App() {
             <Route
               path="/dashboard"
               element={
-                <ProtectedRoute allowedRoles={['citizen', 'admin']}>
+                <ProtectedRoute allowedRoles={['CITIZEN', 'ADMIN']}>
                   <DashboardLayout />
                 </ProtectedRoute>
               }
@@ -91,7 +91,7 @@ function App() {
             <Route
               path="/driver"
               element={
-                <ProtectedRoute allowedRoles={['driver', 'admin']}>
+                <ProtectedRoute allowedRoles={['DRIVER', 'ADMIN']}>
                   <DashboardLayout variant="driver" />
                 </ProtectedRoute>
               }
@@ -105,7 +105,7 @@ function App() {
             <Route
               path="/admin"
               element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['ADMIN']}>
                   <DashboardLayout variant="admin" />
                 </ProtectedRoute>
               }

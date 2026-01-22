@@ -35,9 +35,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     // Redirect to appropriate dashboard based on role
     const roleRedirects: Record<UserRole, string> = {
-      citizen: '/dashboard',
-      driver: '/driver',
-      admin: '/admin',
+      CITIZEN: '/dashboard',
+      DRIVER: '/driver',
+      ADMIN: '/admin',
     };
     return <Navigate to={roleRedirects[user.role]} replace />;
   }

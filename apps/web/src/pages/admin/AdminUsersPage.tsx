@@ -21,24 +21,24 @@ import type { User, UserRole, UserStatus } from '@/types';
 
 const ROLES: { value: UserRole | ''; label: string }[] = [
   { value: '', label: 'All Roles' },
-  { value: 'citizen', label: 'Citizen' },
-  { value: 'driver', label: 'Driver' },
-  { value: 'admin', label: 'Admin' },
+  { value: 'CITIZEN', label: 'CITIZEN' },
+  { value: 'DRIVER', label: 'DRIVER' },
+  { value: 'ADMIN', label: 'ADMIN' },
 ];
 
 const STATUSES: { value: UserStatus | ''; label: string }[] = [
   { value: '', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'suspended', label: 'Suspended' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+  { value: 'DEACTIVATED', label: 'Deactivated' },
 ];
 
 const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger' | 'warning'> = {
-  active: 'success',
-  inactive: 'secondary',
-  suspended: 'danger',
-  pending: 'warning',
-  deleted: 'danger',
+  ACTIVE: 'success',
+  PENDING: 'warning',
+  SUSPENDED: 'danger',
+  DEACTIVATED: 'secondary',
 };
 
 export function AdminUsersPage() {
@@ -51,7 +51,7 @@ export function AdminUsersPage() {
 
   // Fetch users
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin', 'users', roleFilter, statusFilter, search],
+    queryKey: ['ADMIN', 'users', roleFilter, statusFilter, search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (roleFilter) params.append('role', roleFilter);
@@ -69,7 +69,7 @@ export function AdminUsersPage() {
       await api.patch(`/admin/users/${userId}/status`, { status });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['ADMIN', 'users'] });
       setShowStatusModal(false);
       setSelectedUser(null);
     },
@@ -82,8 +82,8 @@ export function AdminUsersPage() {
       email: 'john@example.com',
       first_name: 'John',
       last_name: 'Doe',
-      role: 'citizen',
-      status: 'active',
+      role: 'CITIZEN',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -93,8 +93,8 @@ export function AdminUsersPage() {
       email: 'jane@example.com',
       first_name: 'Jane',
       last_name: 'Smith',
-      role: 'citizen',
-      status: 'active',
+      role: 'CITIZEN',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -103,9 +103,9 @@ export function AdminUsersPage() {
       id: '3',
       email: 'driver@example.com',
       first_name: 'Mike',
-      last_name: 'Driver',
-      role: 'driver',
-      status: 'active',
+      last_name: 'DRIVER',
+      role: 'DRIVER',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -115,8 +115,8 @@ export function AdminUsersPage() {
       email: 'suspended@example.com',
       first_name: 'Bob',
       last_name: 'Wilson',
-      role: 'citizen',
-      status: 'suspended',
+      role: 'CITIZEN',
+      status: 'SUSPENDED',
       email_verified: true,
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -287,7 +287,7 @@ export function AdminUsersPage() {
                                 </button>
                               )}
                             </Menu.Item>
-                            {user.status !== 'suspended' && (
+                            {user.status !== 'SUSPENDED' && (
                               <Menu.Item>
                                 {({ active }) => (
                                   <button
@@ -297,7 +297,7 @@ export function AdminUsersPage() {
                                     )}
                                     onClick={() => {
                                       setSelectedUser(user);
-                                      updateStatus.mutate({ userId: user.id, status: 'suspended' });
+                                      updateStatus.mutate({ userId: user.id, status: 'SUSPENDED' });
                                     }}
                                   >
                                     Suspend User
@@ -332,7 +332,7 @@ export function AdminUsersPage() {
               Update status for <strong>{selectedUser.first_name} {selectedUser.last_name}</strong>
             </p>
             <div className="space-y-2">
-              {(['active', 'inactive', 'suspended'] as UserStatus[]).map((status) => (
+              {(['ACTIVE', 'INACTIVE', 'SUSPENDED'] as UserStatus[]).map((status) => (
                 <button
                   key={status}
                   onClick={() => updateStatus.mutate({ userId: selectedUser.id, status })}
@@ -444,3 +444,4 @@ export function AdminUsersPage() {
     </div>
   );
 }
+

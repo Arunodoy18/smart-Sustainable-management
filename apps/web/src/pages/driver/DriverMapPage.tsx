@@ -42,15 +42,13 @@ const activeIcon = new Icon({
 });
 
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
-  pending: { label: 'Pending', variant: 'warning' },
-  assigned: { label: 'Assigned', variant: 'default' },
-  scheduled: { label: 'Scheduled', variant: 'default' },
-  en_route: { label: 'En Route', variant: 'default' },
-  arrived: { label: 'Arrived', variant: 'success' },
-  in_progress: { label: 'In Progress', variant: 'default' },
-  completed: { label: 'Completed', variant: 'success' },
-  cancelled: { label: 'Cancelled', variant: 'secondary' },
-  failed: { label: 'Failed', variant: 'danger' },
+  REQUESTED: { label: 'Requested', variant: 'warning' },
+  ASSIGNED: { label: 'Assigned', variant: 'default' },
+  EN_ROUTE: { label: 'En Route', variant: 'default' },
+  ARRIVED: { label: 'Arrived', variant: 'success' },
+  COLLECTED: { label: 'Collected', variant: 'success' },
+  CANCELLED: { label: 'Cancelled', variant: 'secondary' },
+  FAILED: { label: 'Failed', variant: 'danger' },
 };
 
 // Component to update map center
@@ -95,7 +93,7 @@ export function DriverMapPage() {
     }
   }, [setCurrentLocation]);
 
-  const activePickups = pickups?.filter((p) => ['assigned', 'in_progress'].includes(p.status)) || [];
+  const activePickups = pickups?.filter((p) => ['ASSIGNED', 'EN_ROUTE'].includes(p.status)) || [];
 
   // Mock coordinates for demo (in real app, these would come from geocoding)
   const getPickupCoordinates = (pickup: Pickup, index: number): [number, number] => {
@@ -182,7 +180,7 @@ export function DriverMapPage() {
             <Marker
               key={pickup.id}
               position={coords}
-              icon={pickup.status === 'in_progress' ? activeIcon : defaultIcon}
+              icon={pickup.status === 'EN_ROUTE' ? activeIcon : defaultIcon}
               eventHandlers={{
                 click: () => setSelectedPickup(pickup.id),
               }}

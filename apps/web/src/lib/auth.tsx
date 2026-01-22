@@ -96,10 +96,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Redirect based on role
       switch (userData.role) {
-        case 'admin':
+        case 'ADMIN':
           navigate('/admin');
           break;
-        case 'driver':
+        case 'DRIVER':
           navigate('/driver');
           break;
         default:

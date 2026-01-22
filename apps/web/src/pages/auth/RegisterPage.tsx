@@ -68,17 +68,20 @@ export function RegisterPage() {
 
     setIsLoading(true);
 
+    // Use relative URL so it works both locally and in production
+    const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
+    const registerUrl = apiUrl.startsWith('http') 
+      ? `${apiUrl}/auth/register`
+      : `${window.location.origin}${apiUrl}/auth/register`;
+
     try {
-      const res = await fetch(
-        'https://smartwaste-api-ie5a.onrender.com/api/v1/auth/register',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const res = await fetch(registerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
       const data = await res.json();
       console.log('REGISTER RESPONSE:', res.status, data);

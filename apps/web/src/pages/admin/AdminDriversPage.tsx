@@ -32,11 +32,10 @@ interface Driver extends User {
 }
 
 const STATUS_VARIANTS: Record<UserStatus, 'success' | 'secondary' | 'danger' | 'warning'> = {
-  active: 'success',
-  inactive: 'secondary',
-  suspended: 'danger',
-  pending: 'warning',
-  deleted: 'danger',
+  ACTIVE: 'success',
+  PENDING: 'warning',
+  SUSPENDED: 'danger',
+  DEACTIVATED: 'danger',
 };
 
 export function AdminDriversPage() {
@@ -48,7 +47,7 @@ export function AdminDriversPage() {
 
   // Fetch drivers
   const { data: drivers, isLoading } = useQuery({
-    queryKey: ['admin', 'drivers', availabilityFilter, search],
+    queryKey: ['ADMIN', 'drivers', availabilityFilter, search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (availabilityFilter !== 'all') params.append('availability', availabilityFilter);
@@ -65,7 +64,7 @@ export function AdminDriversPage() {
       await api.patch(`/admin/drivers/${driverId}/availability`, { is_available: available });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['ADMIN', 'drivers'] });
     },
   });
 
@@ -76,8 +75,8 @@ export function AdminDriversPage() {
       email: 'alex@driver.com',
       first_name: 'Alex',
       last_name: 'Johnson',
-      role: 'driver',
-      status: 'active',
+      role: 'DRIVER',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -95,8 +94,8 @@ export function AdminDriversPage() {
       email: 'maria@driver.com',
       first_name: 'Maria',
       last_name: 'Garcia',
-      role: 'driver',
-      status: 'active',
+      role: 'DRIVER',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -114,8 +113,8 @@ export function AdminDriversPage() {
       email: 'james@driver.com',
       first_name: 'James',
       last_name: 'Wilson',
-      role: 'driver',
-      status: 'active',
+      role: 'DRIVER',
+      status: 'ACTIVE',
       email_verified: true,
       created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
@@ -443,3 +442,4 @@ export function AdminDriversPage() {
     </div>
   );
 }
+

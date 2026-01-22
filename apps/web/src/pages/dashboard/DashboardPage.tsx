@@ -225,7 +225,7 @@ export function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium text-gray-900">
-                      {entry.classification?.category?.replace('_', ' ') || 'Pending'}
+                      {entry.classification?.category?.replace('_', ' ') || 'PENDING'}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(entry.created_at).toLocaleDateString()}
@@ -234,9 +234,9 @@ export function DashboardPage() {
                   {entry.classification && (
                     <Badge
                       variant={
-                        entry.classification.confidence_tier === 'high'
+                        entry.classification.confidence_tier === 'HIGH'
                           ? 'success'
-                          : entry.classification.confidence_tier === 'medium'
+                          : entry.classification.confidence_tier === 'MEDIUM'
                           ? 'warning'
                           : 'danger'
                       }
@@ -254,3 +254,4 @@ export function DashboardPage() {
     </div>
   );
 }
+

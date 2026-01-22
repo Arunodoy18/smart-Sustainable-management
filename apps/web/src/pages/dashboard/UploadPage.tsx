@@ -237,9 +237,9 @@ export function UploadPage() {
                       <div className="mt-1 flex items-center gap-2">
                         <Badge
                           variant={
-                            result.confidence_tier === 'high'
+                            result.confidence_tier === 'HIGH'
                               ? 'success'
-                              : result.confidence_tier === 'medium'
+                              : result.confidence_tier === 'MEDIUM'
                               ? 'warning'
                               : 'danger'
                           }
@@ -282,7 +282,7 @@ export function UploadPage() {
                   )}
 
                   {/* Low confidence warning */}
-                  {result.confidence_tier === 'low' && (
+                  {result.confidence_tier === 'LOW' && (
                     <div className="mt-4 flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                       <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-yellow-600" />
                       <div>
@@ -389,3 +389,4 @@ export function UploadPage() {
     </div>
   );
 }
+

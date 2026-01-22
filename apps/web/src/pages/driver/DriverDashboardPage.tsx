@@ -27,15 +27,13 @@ interface DriverStats {
 }
 
 const STATUS_CONFIG: Record<PickupStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'danger' }> = {
-  pending: { label: 'Pending', variant: 'warning' },
-  assigned: { label: 'Assigned', variant: 'default' },
-  scheduled: { label: 'Scheduled', variant: 'default' },
-  en_route: { label: 'En Route', variant: 'default' },
-  arrived: { label: 'Arrived', variant: 'success' },
-  in_progress: { label: 'In Progress', variant: 'default' },
-  completed: { label: 'Completed', variant: 'success' },
-  cancelled: { label: 'Cancelled', variant: 'secondary' },
-  failed: { label: 'Failed', variant: 'danger' },
+  REQUESTED: { label: 'Requested', variant: 'warning' },
+  ASSIGNED: { label: 'Assigned', variant: 'default' },
+  EN_ROUTE: { label: 'En Route', variant: 'default' },
+  ARRIVED: { label: 'Arrived', variant: 'success' },
+  COLLECTED: { label: 'Collected', variant: 'success' },
+  CANCELLED: { label: 'Cancelled', variant: 'secondary' },
+  FAILED: { label: 'Failed', variant: 'danger' },
 };
 
 export function DriverDashboardPage() {
@@ -43,7 +41,7 @@ export function DriverDashboardPage() {
 
   // Fetch driver stats
   const { data: stats, isLoading: loadingStats } = useQuery({
-    queryKey: ['driver', 'stats'],
+    queryKey: ['DRIVER', 'stats'],
     queryFn: async () => {
       const { data } = await api.get<DriverStats>('/pickups/driver/stats');
       return data;
@@ -52,15 +50,15 @@ export function DriverDashboardPage() {
 
   // Fetch assigned pickups
   const { data: pickups, isLoading: loadingPickups } = useQuery({
-    queryKey: ['driver', 'pickups'],
+    queryKey: ['DRIVER', 'pickups'],
     queryFn: async () => {
       const { data } = await api.get<Pickup[]>('/pickups/driver/assigned');
       return data;
     },
   });
 
-  const activePickups = pickups?.filter((p) => ['assigned', 'in_progress'].includes(p.status)) || [];
-  const inProgress = pickups?.find((p) => p.status === 'in_progress');
+  const activePickups = pickups?.filter((p) => ['assigned', 'EN_ROUTE'].includes(p.status)) || [];
+  const inProgress = pickups?.find((p) => p.status === 'EN_ROUTE');
 
   if (loadingStats || loadingPickups) {
     return (
@@ -135,7 +133,7 @@ export function DriverDashboardPage() {
           iconColor="bg-green-100 text-green-600"
         />
         <StatsCard
-          title="Pending"
+          title="PENDING"
           value={stats?.pending_pickups || 0}
           icon={<ExclamationCircleIcon className="h-6 w-6" />}
           iconColor="bg-yellow-100 text-yellow-600"
@@ -241,3 +239,4 @@ export function DriverDashboardPage() {
     </div>
   );
 }
+
