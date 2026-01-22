@@ -135,9 +135,57 @@ async def get_optional_user(
         return None
 
 
+async def get_current_user_or_guest(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> User:
+    """
+    Get current authenticated user, or create/return a guest user for public access.
+    
+    This allows the app to work without authentication while maintaining
+    the same API structure.
+    """
+    # Try to get authenticated user first
+    if credentials:
+        try:
+            payload = verify_token_type(credentials.credentials, "access")
+            if payload:
+                user_id = payload.get("sub")
+                if user_id:
+                    auth_service = AuthService(session)
+                    user = await auth_service.get_user_by_id(UUID(user_id))
+                    if user and user.status == UserStatus.ACTIVE:
+                        return user
+        except Exception:
+            pass  # Fall through to guest user
+    
+    # No valid authentication - use guest user
+    # Check if guest user exists, create if not
+    auth_service = AuthService(session)
+    
+    # Use a fixed email for the guest user
+    guest_email = "guest@smartwaste.app"
+    guest_user = await auth_service.get_user_by_email(guest_email)
+    
+    if not guest_user:
+        # Create guest user
+        from src.schemas.user import UserCreate
+        guest_data = UserCreate(
+            email=guest_email,
+            password="GuestUser123!",  # Not used for guest access
+            first_name="Guest",
+            last_name="User",
+            role=UserRole.CITIZEN,
+        )
+        guest_user = await auth_service.create_user(guest_data, commit=True)
+    
+    return guest_user
+
+
 # Type aliases for cleaner route signatures
 CurrentUser = Annotated[User, Depends(get_current_user)]
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+PublicUser = Annotated[User, Depends(get_current_user_or_guest)]  # User or guest
 DbSession = Annotated[AsyncSession, Depends(get_session)]
 
 

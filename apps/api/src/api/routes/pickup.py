@@ -1,4 +1,4 @@
-"""
+﻿"""
 Pickup Routes
 =============
 
@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from src.api.deps import (
     CurrentUser,
     DbSession,
+    PublicUser,
     RequireDriver,
 )
 from src.models.pickup import PickupStatus
@@ -43,7 +44,7 @@ router = APIRouter(prefix="/pickups", tags=["Pickups"])
 )
 async def request_pickup(
     data: PickupRequest,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Request a new waste pickup."""
@@ -64,7 +65,7 @@ async def request_pickup(
     description="Get list of user's pickup requests.",
 )
 async def get_my_pickups(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -97,7 +98,7 @@ async def get_my_pickups(
 )
 async def get_pickup(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get pickup details."""
@@ -132,7 +133,7 @@ async def get_pickup(
 )
 async def cancel_pickup(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Cancel a pickup request."""
@@ -170,7 +171,7 @@ async def cancel_pickup(
 )
 async def rate_pickup(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     rating: int = Query(..., ge=1, le=5),
     feedback: str | None = Query(None, max_length=500),
@@ -214,7 +215,7 @@ async def rate_pickup(
     dependencies=[Depends(RequireDriver)],
 )
 async def get_available_pickups(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
@@ -240,7 +241,7 @@ async def get_available_pickups(
     dependencies=[Depends(RequireDriver)],
 )
 async def get_assigned_pickups(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get driver's assigned pickups."""
@@ -260,7 +261,7 @@ async def get_assigned_pickups(
 )
 async def accept_pickup(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Accept a pickup as driver."""
@@ -289,7 +290,7 @@ async def accept_pickup(
 )
 async def mark_en_route(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Mark driver as en route to pickup."""
@@ -318,7 +319,7 @@ async def mark_en_route(
 )
 async def mark_arrived(
     pickup_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Mark driver as arrived at pickup location."""
@@ -348,7 +349,7 @@ async def mark_arrived(
 async def complete_pickup(
     pickup_id: uuid.UUID,
     data: DriverPickupComplete,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Complete a pickup with verification."""
@@ -380,7 +381,7 @@ async def complete_pickup(
 )
 async def update_driver_location(
     data: DriverLocationUpdate,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Update driver's live location."""
@@ -402,7 +403,7 @@ async def update_driver_location(
     dependencies=[Depends(RequireDriver)],
 )
 async def get_driver_stats(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get driver's statistics."""

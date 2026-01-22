@@ -1,4 +1,4 @@
-"""
+﻿"""
 Rewards Routes
 ==============
 
@@ -10,7 +10,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from src.api.deps import CurrentUser, DbSession
+from src.api.deps import CurrentUser, DbSession, PublicUser
 from src.schemas.common import PaginatedResponse
 from src.schemas.rewards import (
     RewardResponse,
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/rewards", tags=["Rewards & Gamification"])
     description="Get user's reward points and level summary.",
 )
 async def get_reward_summary(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get user's reward summary."""
@@ -49,7 +49,7 @@ async def get_reward_summary(
     description="Get paginated list of reward transactions.",
 )
 async def get_reward_history(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -79,7 +79,7 @@ async def get_reward_history(
     description="Get user's current streak information.",
 )
 async def get_streak(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get user's streak information."""
@@ -105,7 +105,7 @@ async def get_streak(
     description="Get all achievements and user's progress.",
 )
 async def get_achievements(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get all achievements with user's progress."""
@@ -122,7 +122,7 @@ async def get_achievements(
     description="Get recently unlocked achievements.",
 )
 async def get_recent_achievements(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     limit: int = Query(5, ge=1, le=20),
 ):
@@ -143,7 +143,7 @@ async def get_recent_achievements(
     description="Get points leaderboard.",
 )
 async def get_leaderboard(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     period: str = Query("weekly", pattern="^(daily|weekly|monthly|all_time)$"),
     limit: int = Query(10, ge=1, le=100),
@@ -243,7 +243,7 @@ async def get_point_values():
     description="Claim daily login bonus.",
 )
 async def claim_daily_bonus(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Claim daily login bonus."""

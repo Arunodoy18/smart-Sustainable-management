@@ -1,4 +1,4 @@
-"""
+﻿"""
 Waste Management Routes
 =======================
 
@@ -10,7 +10,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 
-from src.api.deps import CurrentUser, DbSession, OptionalUser, get_optional_user
+from src.api.deps import CurrentUser, DbSession, OptionalUser, PublicUser, get_optional_user
 from src.models.waste import ClassificationConfidence, WasteCategory
 from src.schemas.common import PaginatedResponse
 from src.schemas.waste import (
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/waste", tags=["Waste Management"])
     description="Upload a waste item image for classification.",
 )
 async def upload_waste_image(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     file: UploadFile = File(..., description="Waste item image"),
     latitude: float | None = Query(None, ge=-90, le=90),
@@ -104,7 +104,7 @@ async def upload_waste_image(
     description="Get paginated list of user's waste entries.",
 )
 async def get_waste_history(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -150,7 +150,7 @@ async def get_waste_history(
 )
 async def get_waste_entry(
     entry_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get waste entry details."""
@@ -203,7 +203,7 @@ async def get_waste_entry(
 )
 async def reclassify_waste(
     entry_id: uuid.UUID,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Re-run classification on existing entry."""
@@ -246,7 +246,7 @@ async def reclassify_waste(
 async def manual_classify(
     entry_id: uuid.UUID,
     data: ManualClassificationRequest,
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Manually classify a waste entry."""
@@ -291,7 +291,7 @@ async def manual_classify(
     description="Get user's environmental impact statistics.",
 )
 async def get_impact_stats(
-    current_user: CurrentUser,
+    current_user: PublicUser,
     session: DbSession,
 ):
     """Get user's environmental impact."""
