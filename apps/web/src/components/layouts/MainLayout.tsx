@@ -9,11 +9,9 @@ import { Outlet, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui';
-import { useAuth } from '@/lib';
 
 export function MainLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isAuthenticated, user } = useAuth();
 
   const navigation = [
     { name: 'Features', href: '#features' },
@@ -62,20 +60,9 @@ export function MainLayout() {
 
           {/* Auth Buttons */}
           <div className="hidden lg:flex lg:items-center lg:gap-4">
-            {isAuthenticated ? (
-              <Link to={user?.role === 'ADMIN' ? '/admin' : user?.role === 'DRIVER' ? '/driver' : '/dashboard'}>
-                <Button>Go to Dashboard</Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost">Log in</Button>
-                </Link>
-                <Link to="/register">
-                  <Button>Get Started</Button>
-                </Link>
-              </>
-            )}
+            <Link to="/dashboard">
+              <Button>Go to Dashboard</Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -134,34 +121,13 @@ export function MainLayout() {
                   ))}
                 </div>
                 <div className="border-t border-gray-200 py-6 space-y-3">
-                  {isAuthenticated ? (
-                    <Link
-                      to="/dashboard"
-                      className="block"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Button className="w-full">Go to Dashboard</Button>
-                    </Link>
-                  ) : (
-                    <>
-                      <Link
-                        to="/login"
-                        className="block"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Button variant="outline" className="w-full">
-                          Log in
-                        </Button>
-                      </Link>
-                      <Link
-                        to="/register"
-                        className="block"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Button className="w-full">Get Started</Button>
-                      </Link>
-                    </>
-                  )}
+                  <Link
+                    to="/dashboard"
+                    className="block"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button className="w-full">Go to Dashboard</Button>
+                  </Link>
                 </div>
               </div>
             </div>

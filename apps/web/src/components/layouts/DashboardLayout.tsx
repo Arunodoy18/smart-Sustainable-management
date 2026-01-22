@@ -25,7 +25,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
 
-import { useAuth } from '@/lib';
 import { Avatar } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -58,15 +57,19 @@ const navigationConfig = {
 
 export function DashboardLayout({ variant = 'citizen' }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const navigation = navigationConfig[variant];
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  // Mock user for public access
+  const user = {
+    name: 'Guest User',
+    email: 'guest@example.com',
+    role: variant.toUpperCase(),
+    first_name: 'Guest',
+    last_name: 'User',
+    avatar_url: undefined,
   };
+
+  const navigation = navigationConfig[variant];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,15 +220,6 @@ export function DashboardLayout({ variant = 'citizen' }: DashboardLayoutProps) {
                   ))}
                 </ul>
               </li>
-              <li className="mt-auto">
-                <button
-                  onClick={handleLogout}
-                  className="group flex w-full gap-x-3 rounded-lg p-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                >
-                  <ArrowLeftOnRectangleIcon className="h-6 w-6 shrink-0" />
-                  Logout
-                </button>
-              </li>
             </ul>
           </nav>
         </div>
@@ -289,20 +283,6 @@ export function DashboardLayout({ variant = 'citizen' }: DashboardLayoutProps) {
                           <UserIcon className="h-4 w-4" />
                           Your Profile
                         </NavLink>
-                      )}
-                    </Menu.Item>
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={handleLogout}
-                          className={cn(
-                            active ? 'bg-gray-50' : '',
-                            'flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-900'
-                          )}
-                        >
-                          <ArrowLeftOnRectangleIcon className="h-4 w-4" />
-                          Sign out
-                        </button>
                       )}
                     </Menu.Item>
                   </Menu.Items>

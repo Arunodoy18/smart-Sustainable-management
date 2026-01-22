@@ -97,7 +97,7 @@ export function LandingPage() {
                 waste disposal smarter and more sustainable for everyone.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link to="/register">
+                <Link to="/dashboard">
                   <Button size="lg">
                     Get Started Free
                   </Button>
@@ -351,7 +351,7 @@ export function LandingPage() {
               Join thousands of eco-conscious citizens and start your journey towards smarter waste management today.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link to="/register">
+              <Link to="/dashboard">
                 <Button
                   size="lg"
                   className="bg-white text-primary-600 hover:bg-primary-50"
@@ -359,8 +359,8 @@ export function LandingPage() {
                   Get Started for Free
                 </Button>
               </Link>
-              <Link to="/login" className="text-sm font-semibold leading-6 text-white">
-                Already have an account? <span aria-hidden="true">→</span>
+              <Link to="/dashboard" className="text-sm font-semibold leading-6 text-white">
+                Start Using Now <span aria-hidden="true">→</span>
               </Link>
             </div>
           </div>
