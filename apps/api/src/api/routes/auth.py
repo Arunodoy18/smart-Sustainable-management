@@ -8,6 +8,7 @@ API endpoints for authentication and user management.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.exceptions import RequestValidationError
 
 from src.api.deps import (
     CurrentUser,
@@ -67,6 +68,10 @@ async def register(
         user = await auth_service.register_user(data)
         logger.info(f"Successfully registered user: {user.email}")
         return user
+    except RequestValidationError as e:
+        # Log validation errors explicitly for debugging
+        logger.warning(f"Registration validation error for {data.email}: {e.errors()}")
+        raise
     except AuthenticationError as e:
         logger.info(f"Registration failed: {str(e)} for email: {data.email}")
         raise HTTPException(
