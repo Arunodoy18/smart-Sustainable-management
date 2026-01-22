@@ -5,60 +5,94 @@
  * User registration form.
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState, FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-import { useAuth } from '@/lib';
 import { Button, Input } from '@/components/ui';
 
-const registerSchema = z
-  .object({
-    first_name: z.string().min(2, 'First name must be at least 2 characters'),
-    last_name: z.string().min(2, 'Last name must be at least 2 characters'),
-    email: z.string().email('Please enter a valid email'),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirm_password: z.string(),
-  })
-  .refine((data) => data.password === data.confirm_password, {
-    message: "Passwords don't match",
-    path: ['confirm_password'],
-  });
-
-type RegisterFormData = z.infer<typeof registerSchema>;
-
 export function RegisterPage() {
-  const { register: registerUser } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [first_name, setFirstName] = useState('');
+  const [last_name, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm_password, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-  });
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
 
-  const onSubmit = async (data: RegisterFormData) => {
+    if (first_name.length < 2) {
+      newErrors.first_name = 'First name must be at least 2 characters';
+    }
+    if (last_name.length < 2) {
+      newErrors.last_name = 'Last name must be at least 2 characters';
+    }
+    if (!email.includes('@')) {
+      newErrors.email = 'Please enter a valid email';
+    }
+    if (password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[A-Z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter';
+    } else if (!/[a-z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one lowercase letter';
+    } else if (!/[0-9]/.test(password)) {
+      newErrors.password = 'Password must contain at least one number';
+    }
+    if (password !== confirm_password) {
+      newErrors.confirm_password = "Passwords don't match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleRegister = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const payload = {
+      first_name,
+      last_name,
+      email,
+      password,
+    };
+
+    console.log('REGISTER PAYLOAD:', payload);
+
     setIsLoading(true);
+
     try {
-      await registerUser({
-        first_name: data.first_name,
-        last_name: data.last_name,
-        email: data.email,
-        password: data.password,
-      });
-      toast.success('Account created successfully!');
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Registration failed');
+      const res = await fetch(
+        'https://smartwaste-api-ie5a.onrender.com/api/v1/auth/register',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await res.json();
+      console.log('REGISTER RESPONSE:', res.status, data);
+
+      if (!res.ok) {
+        toast.error(data.detail || 'Registration failed');
+        return;
+      }
+
+      toast.success('Registration successful!');
+      navigate('/login');
+    } catch (err) {
+      console.error('REGISTER ERROR:', err);
+      toast.error('Network error');
     } finally {
       setIsLoading(false);
     }
@@ -76,19 +110,21 @@ export function RegisterPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
+      <form onSubmit={handleRegister} className="mt-8 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="First name"
             placeholder="John"
-            error={errors.first_name?.message}
-            {...register('first_name')}
+            value={first_name}
+            onChange={(e) => setFirstName(e.target.value)}
+            error={errors.first_name}
           />
           <Input
             label="Last name"
             placeholder="Doe"
-            error={errors.last_name?.message}
-            {...register('last_name')}
+            value={last_name}
+            onChange={(e) => setLastName(e.target.value)}
+            error={errors.last_name}
           />
         </div>
 
@@ -97,8 +133,9 @@ export function RegisterPage() {
           type="email"
           autoComplete="email"
           placeholder="you@example.com"
-          error={errors.email?.message}
-          {...register('email')}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          error={errors.email}
         />
 
         <Input
@@ -106,9 +143,10 @@ export function RegisterPage() {
           type="password"
           autoComplete="new-password"
           placeholder="••••••••"
-          error={errors.password?.message}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={errors.password}
           helperText="At least 8 characters with uppercase, lowercase, and number"
-          {...register('password')}
         />
 
         <Input
@@ -116,8 +154,9 @@ export function RegisterPage() {
           type="password"
           autoComplete="new-password"
           placeholder="••••••••"
-          error={errors.confirm_password?.message}
-          {...register('confirm_password')}
+          value={confirm_password}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          error={errors.confirm_password}
         />
 
         <div className="pt-2">
