@@ -96,10 +96,6 @@ app = FastAPI(
 # Add CORS middleware FIRST (middleware order is reversed in FastAPI - last added runs first)
 # This ensures CORS headers are added to all responses including errors
 # Allow Netlify deploy previews with regex pattern
-import re
-from fastapi.middleware.cors import CORSMiddleware as BaseCORSMiddleware
-
-# Custom CORS middleware to handle Netlify deploy preview URLs
 origins_regex = r"^https://([a-z0-9-]+--)?wastifi\.netlify\.app$"
 
 app.add_middleware(
