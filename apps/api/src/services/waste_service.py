@@ -466,6 +466,33 @@ class WasteService:
             recycling_rate=recycling_rate,
         )
 
+    async def calculate_user_impact(self, user_id: UUID) -> dict[str, Any]:
+        """
+        Calculate user's total environmental impact.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            Dictionary with impact statistics
+        """
+        result = await self.session.execute(
+            select(
+                func.count(WasteEntry.id).label("total_entries"),
+                func.sum(WasteEntry.estimated_weight_kg).label("total_weight"),
+                func.sum(WasteEntry.co2_saved_kg).label("total_co2_saved"),
+            )
+            .where(WasteEntry.user_id == user_id)
+        )
+        row = result.one()
+        
+        return {
+            "total_entries": row.total_entries or 0,
+            "total_weight_kg": float(row.total_weight or 0),
+            "co2_saved_kg": float(row.total_co2_saved or 0),
+            "trees_equivalent": round(float(row.total_co2_saved or 0) * 0.05, 1),  # Rough estimate
+        }
+
     async def get_bin_types_info(self) -> list[dict[str, Any]]:
         """Get information about all bin types."""
         return [
