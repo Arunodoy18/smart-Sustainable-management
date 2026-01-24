@@ -32,20 +32,29 @@ def _create_default_classifier() -> BaseClassifier:
             from src.ml.classifiers.clip_classifier import CLIPWasteClassifier
             
             logger.info(
-                "Using CLIP classifier",
+                "Initializing CLIP classifier",
                 model_id=settings.clip_model_id,
                 device=settings.clip_device or "auto",
             )
             return CLIPWasteClassifier(device=settings.clip_device)
+        except ImportError as e:
+            logger.error(
+                "Failed to import CLIP classifier - missing dependencies (transformers/torch)",
+                error=str(e),
+            )
+            logger.warning("Install with: pip install transformers torch pillow")
+            logger.info("Falling back to mock classifier")
+            return MockWasteClassifier()
         except Exception as e:
             logger.error(
-                "Failed to initialize CLIP classifier, falling back to mock",
+                "Failed to initialize CLIP classifier",
                 error=str(e),
                 exc_info=True,
             )
+            logger.info("Falling back to mock classifier")
             return MockWasteClassifier()
     else:
-        logger.info("Using mock classifier for development")
+        logger.info("Using mock classifier (USE_CLIP_CLASSIFIER=false)")
         return MockWasteClassifier()
 
 

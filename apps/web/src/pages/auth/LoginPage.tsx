@@ -91,22 +91,6 @@ export function LoginPage() {
           Sign in
         </Button>
       </form>
-
-      {/* Demo accounts */}
-      <div className="mt-8 rounded-lg bg-gray-50 p-4">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Demo Accounts</p>
-        <div className="mt-2 space-y-2 text-sm text-gray-600">
-          <p>
-            <span className="font-medium">Citizen:</span> citizen@demo.com / demo123
-          </p>
-          <p>
-            <span className="font-medium">Driver:</span> driver@demo.com / demo123
-          </p>
-          <p>
-            <span className="font-medium">Admin:</span> admin@demo.com / demo123
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

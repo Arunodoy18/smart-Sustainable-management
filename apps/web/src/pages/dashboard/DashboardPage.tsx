@@ -31,9 +31,11 @@ export function DashboardPage() {
   const { data: rewards, isLoading: loadingRewards } = useQuery({
     queryKey: ['rewards', 'summary'],
     queryFn: async () => {
-      const { data } = await api.get<RewardSummary>('/rewards/summary');
+      const { data } = await api.get<RewardSummary>('/api/v1/rewards/summary');
       return data;
     },
+    retry: 2, // Retry failed requests twice
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 
   // Fetch impact stats
@@ -43,6 +45,8 @@ export function DashboardPage() {
       const { data } = await api.get<ImpactStats>('/api/v1/waste/stats/impact');
       return data;
     },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // Fetch recent entries
@@ -52,6 +56,8 @@ export function DashboardPage() {
       const { data } = await api.get('/api/v1/waste/history', { params: { page_size: 5 } });
       return data.items as WasteEntry[];
     },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   const levelNames = ['', 'Eco Starter', 'Green Guardian', 'Sustainability Hero', 'Eco Champion', 'Planet Protector'];

@@ -46,8 +46,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     
     # Initialize ML pipeline
     from src.ml import ClassificationPipeline
-    ClassificationPipeline.get_instance()
-    logger.info("ML pipeline initialized")
+    try:
+        pipeline = ClassificationPipeline.get_instance()
+        await pipeline.initialize()
+        logger.info("ML pipeline initialized", classifier=pipeline.classifier.model_name)
+    except Exception as e:
+        logger.error("Failed to initialize ML pipeline", error=str(e), exc_info=True)
+        # Continue startup - will use fallback or fail on first request
+        logger.warning("ML pipeline initialization failed - classification may not work")
     
     yield
     
