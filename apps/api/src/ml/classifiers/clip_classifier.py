@@ -31,17 +31,17 @@ class CLIPWasteClassifier(BaseClassifier):
     embeddings with text descriptions of waste categories.
     
     Architecture:
-    - Vision Transformer (ViT-L/14) for image encoding
+    - Vision Transformer (ViT-B/32) for image encoding (optimized for memory)
     - Text encoder for category descriptions
     - Cosine similarity for classification
     
     Performance:
-    - Model size: ~600MB
-    - Inference time: ~200-500ms (CPU) / ~50-100ms (GPU)
-    - Memory: ~2-3GB RAM
+    - Model size: ~150MB (memory-optimized)
+    - Inference time: ~100-300ms (CPU) / ~30-60ms (GPU)
+    - Memory: ~500MB-1GB RAM
     """
     
-    MODEL_ID = "openai/clip-vit-large-patch14"
+    MODEL_ID = "openai/clip-vit-base-patch32"
     MODEL_VERSION = "1.0.0"
     
     # Category descriptions optimized for CLIP

@@ -40,7 +40,7 @@ async def test_clip_classifier():
         print(f"  Device: {classifier.device}")
         
         # Load model
-        print("\nLoading CLIP model (first run will download ~600MB)...")
+        print("\nLoading CLIP model (first run will download ~150MB)...")
         await classifier.load()
         
         print("✓ Model loaded successfully")
