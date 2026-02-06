@@ -22,6 +22,7 @@ from src.schemas.waste import (
     ManualClassificationRequest,
 )
 from src.services import WasteService
+from src.services.rewards_service import RewardsService, RewardType
 from src.services.storage_service import storage, StorageError
 
 router = APIRouter(prefix="/waste", tags=["Waste Management"])
@@ -75,6 +76,7 @@ async def upload_waste_image(
         )
     
     waste_service = WasteService(session)
+    rewards_service = RewardsService(session)
     
     # Create waste entry
     entry_data = WasteEntryCreate(
@@ -93,6 +95,28 @@ async def upload_waste_image(
     
     # Run AI classification
     classification = await waste_service.classify_entry(entry.id)
+    
+    # Award points for classification (base points based on confidence)
+    points_awarded = 0
+    if classification.confidence_tier == ClassificationConfidence.HIGH:
+        points_awarded = 15  # High confidence = 15 points
+    elif classification.confidence_tier == ClassificationConfidence.MEDIUM:
+        points_awarded = 10  # Medium confidence = 10 points
+    elif classification.confidence_tier == ClassificationConfidence.LOW:
+        points_awarded = 5   # Low confidence = 5 points
+    
+    if points_awarded > 0:
+        await rewards_service.award_points(
+            user_id=current_user.id,
+            points=points_awarded,
+            reward_type=RewardType.CLASSIFICATION,
+            description=f"Waste classified as {entry.category.value}",
+            waste_entry_id=entry.id,
+        )
+    
+    # Commit all changes
+    await session.commit()
+    await session.refresh(entry)
     
     return WasteEntryResponse.from_entry(entry, classification)
 

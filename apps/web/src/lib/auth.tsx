@@ -88,22 +88,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login
   const login = useCallback(
     async (data: LoginRequest) => {
-      const response = await api.post<TokenResponse>('/api/v1/auth/login', data);
-      const { access_token, refresh_token, user: userData } = response.data;
+      try {
+        const response = await api.post<TokenResponse>('/api/v1/auth/login', data);
+        const { access_token, refresh_token, user: userData } = response.data;
 
-      setTokens(access_token, refresh_token);
-      await fetchUser(); // Get full profile
+        // Set tokens FIRST and wait a tick to ensure storage is complete
+        setTokens(access_token, refresh_token);
+        await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for storage
 
-      // Redirect based on role
-      switch (userData.role) {
-        case 'ADMIN':
-          navigate('/admin');
-          break;
-        case 'DRIVER':
-          navigate('/driver');
-          break;
-        default:
-          navigate('/dashboard');
+        // Fetch user profile with the new token
+        await fetch User();
+
+        // Set user immediately from login response to avoid loading state
+        setUser(userData as UserProfile);
+
+        // Redirect based on role
+        switch (userData.role) {
+          case 'ADMIN':
+            navigate('/admin');
+            break;
+          case 'DRIVER':
+            navigate('/driver');
+            break;
+          default:
+            navigate('/dashboard');
+        }
+      } catch (error) {
+        // Clear tokens on login failure
+        clearTokens();
+        setUser(null);
+        throw error;
       }
     },
     [fetchUser, navigate]

@@ -19,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { api, cn } from '@/lib';
+import { useAuth } from '@/lib/auth';
 import { Card, Button, Input, Avatar } from '@/components/ui';
 
 const profileSchema = z.object({
@@ -48,28 +49,29 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export function ProfilePage() {
-  // Mock user for public access
-  const user = {
-    first_name: 'Guest',
-    last_name: 'User',
-    email: 'guest@example.com',
-    phone: '',
-    address: '',
-    avatar_url: undefined,
-    role: 'CITIZEN',
-  };
+  // Get real user from auth context
+  const { user, refreshUser, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTab, setSelectedTab] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Show loading state while fetching user
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   // Profile form
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      first_name: user?.first_name || '',
-      last_name: user?.last_name || '',
-      phone: user?.phone || '',
-      address: user?.address || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      phone: user.phone || '',
+      address: user.address || '',
     },
   });
 
@@ -84,6 +86,7 @@ export function ProfilePage() {
       await api.patch('/api/v1/auth/profile', data);
     },
     onSuccess: async () => {
+      await refreshUser(); // Refresh user data from server
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     },

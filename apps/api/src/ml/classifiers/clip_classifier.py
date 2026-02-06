@@ -39,10 +39,15 @@ class CLIPWasteClassifier(BaseClassifier):
     - Model size: ~150MB (memory-optimized)
     - Inference time: ~100-300ms (CPU) / ~30-60ms (GPU)
     - Memory: ~500MB-1GB RAM
+    
+    Confidence Threshold:
+    - Predictions below 0.5 confidence are marked as "Unknown"
+    - This prevents low-quality predictions from misleading users
     """
     
     MODEL_ID = "openai/clip-vit-base-patch32"
     MODEL_VERSION = "1.0.0"
+    MIN_CONFIDENCE_THRESHOLD = 0.5  # Minimum confidence to return a prediction
     
     # Category descriptions optimized for CLIP
     # Using descriptive prompts improves zero-shot performance
@@ -380,8 +385,20 @@ class CLIPWasteClassifier(BaseClassifier):
         primary_category = max(category_scores, key=category_scores.get)
         primary_confidence = category_scores[primary_category]
         
-        # Predict subcategory within primary category
-        subcategory = self._predict_subcategory_sync(image_features, primary_category)
+        # Apply confidence threshold - mark as GENERAL if too low
+        if primary_confidence < self.MIN_CONFIDENCE_THRESHOLD:
+            logger.warning(
+                "Low confidence prediction",
+                confidence=primary_confidence,
+                category=primary_category.value,
+                threshold=self.MIN_CONFIDENCE_THRESHOLD,
+            )
+            # Fallback to GENERAL waste for low confidence
+            primary_category = WasteCategory.GENERAL
+            subcategory = WasteSubCategory.MIXED
+        else:
+            # Predict subcategory within primary category
+            subcategory = self._predict_subcategory_sync(image_features, primary_category)
         
         # Format raw scores
         raw_scores = {cat.value: score for cat, score in category_scores.items()}

@@ -16,11 +16,13 @@ import {
   XMarkIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  CameraIcon,
 } from '@heroicons/react/24/outline';
 
 import { api } from '@/lib';
 import { useUploadStore } from '@/stores';
 import { Card, Button, Badge, Progress, Spinner } from '@/components/ui';
+import { CameraCapture } from '@/components/CameraCapture';
 import type { WasteCategory, BinType, ConfidenceTier } from '@/types';
 
 // Match backend WasteEntryResponse structure
@@ -40,6 +42,7 @@ export function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
   const { uploadProgress, setUploadProgress, setIsUploading } = useUploadStore();
 
   const uploadMutation = useMutation({
@@ -97,7 +100,15 @@ export function UploadPage() {
     setFile(null);
     setPreview(null);
     setResult(null);
+    setShowCamera(false);
     uploadMutation.reset();
+  };
+
+  const handleCameraCapture = (capturedFile: File) => {
+    setFile(capturedFile);
+    setPreview(URL.createObjectURL(capturedFile));
+    setShowCamera(false);
+    setResult(null);
   };
 
   const getBinInfo = (bin: string) => {
@@ -113,20 +124,27 @@ export function UploadPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Upload Waste Photo</h1>
-        <p className="mt-1 text-gray-600">
-          Take or upload a photo of your waste for AI classification
-        </p>
-      </div>
-
-      <AnimatePresence mode="wait">
-        {!preview ? (
+      <dishowCamera ? (
+          <motion.div
+            key="camera"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="p-6">
+              <CameraCapture
+                onCapture={handleCameraCapture}
+                onCancel={() => setShowCamera(false)}
+              />
+            </Card>
+          </motion.div>
+        ) : !preview ? (
           <motion.div
             key="dropzone"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            className="space-y-4"
           >
             <div
               {...getRootProps()}
@@ -143,6 +161,34 @@ export function UploadPage() {
                 ) : (
                   <PhotoIcon className="h-8 w-8 text-primary-600" />
                 )}
+              </div>
+              <p className="mt-4 text-lg font-medium text-gray-900">
+                {isDragActive ? 'Drop your image here' : 'Drag & drop or click to upload'}
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                PNG, JPG or WebP up to 10MB
+              </p>
+            </div>
+
+            {/* Camera Option */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">or</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setShowCamera(true)}
+              variant="outline"
+              size="lg"
+              className="w-full"
+              leftIcon={<CameraIcon className="h-5 w-5" />}
+            >
+              Take Photo with Camera
+            </Button}
               </div>
               <p className="mt-4 text-lg font-medium text-gray-900">
                 {isDragActive ? 'Drop your image here' : 'Drag & drop or click to upload'}

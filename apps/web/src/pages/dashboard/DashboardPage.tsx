@@ -16,16 +16,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { api } from '@/lib';
+import { useAuth } from '@/lib/auth';
 import { Card, StatsCard, Button, Badge, Progress, LoadingInline } from '@/components/ui';
 import type { RewardSummary, ImpactStats, WasteEntry } from '@/types';
 
 export function DashboardPage() {
-  // Mock user for public access
-  const user = {
-    first_name: 'Guest',
-    last_name: 'User',
-    email: 'guest@example.com',
-  };
+  // Get real user from auth context
+  const { user } = useAuth();
 
   // Fetch reward summary
   const { data: rewards, isLoading: loadingRewards } = useQuery({

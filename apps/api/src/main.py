@@ -109,6 +109,7 @@ app.add_middleware(
     allow_origin_regex=origins_regex,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",
     ],
     allow_credentials=True,

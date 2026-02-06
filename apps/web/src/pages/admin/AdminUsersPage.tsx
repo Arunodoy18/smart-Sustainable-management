@@ -75,55 +75,8 @@ export function AdminUsersPage() {
     },
   });
 
-  // Mock data for demo
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      email: 'john@example.com',
-      first_name: 'John',
-      last_name: 'Doe',
-      role: 'CITIZEN',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      email: 'jane@example.com',
-      first_name: 'Jane',
-      last_name: 'Smith',
-      role: 'CITIZEN',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      email: 'driver@example.com',
-      first_name: 'Mike',
-      last_name: 'DRIVER',
-      role: 'DRIVER',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: '4',
-      email: 'suspended@example.com',
-      first_name: 'Bob',
-      last_name: 'Wilson',
-      role: 'CITIZEN',
-      status: 'SUSPENDED',
-      email_verified: true,
-      created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ];
-
-  const displayUsers = users || mockUsers;
+  // Use only real users from API - no fallback data
+  const displayUsers = users || [];
 
   return (
     <div>
