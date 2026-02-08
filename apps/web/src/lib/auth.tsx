@@ -97,7 +97,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for storage
 
         // Fetch user profile with the new token
-        await fetch User();
+        await fetchUser();
 
         // Set user immediately from login response to avoid loading state
         setUser(userData as UserProfile);

@@ -124,7 +124,8 @@ export function UploadPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <dishowCamera ? (
+      <AnimatePresence>
+        {showCamera ? (
           <motion.div
             key="camera"
             initial={{ opacity: 0, y: 20 }}
@@ -188,15 +189,8 @@ export function UploadPage() {
               leftIcon={<CameraIcon className="h-5 w-5" />}
             >
               Take Photo with Camera
-            </Button}
-              </div>
-              <p className="mt-4 text-lg font-medium text-gray-900">
-                {isDragActive ? 'Drop your image here' : 'Drag & drop or click to upload'}
-              </p>
-              <p className="mt-2 text-sm text-gray-500">
-                PNG, JPG or WebP up to 10MB
-              </p>
-            </div>
+            </Button>
+
           </motion.div>
         ) : (
           <motion.div
