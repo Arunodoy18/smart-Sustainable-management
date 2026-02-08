@@ -27,12 +27,46 @@ logger = get_logger(__name__)
 
 def _create_default_classifier() -> BaseClassifier:
     """Create default classifier based on configuration."""
-    if settings.use_clip_classifier:
+    classifier_type = settings.ml_classifier_type
+    
+    # Handle legacy USE_CLIP_CLASSIFIER setting
+    if not settings.use_clip_classifier and classifier_type == "clip":
+        classifier_type = "mock"
+        logger.warning("USE_CLIP_CLASSIFIER=false overrides ml_classifier_type, using mock classifier")
+    
+    if classifier_type == "mobilenet":
+        try:
+            from src.ml.classifiers.mobilenet_classifier import MobileNetWasteClassifier
+            
+            logger.info(
+                "Initializing MobileNet classifier (lightweight)",
+                model="mobilenet_v2",
+                memory="~100MB",
+            )
+            return MobileNetWasteClassifier()
+        except ImportError as e:
+            logger.error(
+                "Failed to import MobileNet classifier - missing dependencies (torch/torchvision)",
+                error=str(e),
+            )
+            logger.warning("Install with: pip install torch torchvision pillow")
+            logger.info("Falling back to mock classifier")
+            return MockWasteClassifier()
+        except Exception as e:
+            logger.error(
+                "Failed to initialize MobileNet classifier",
+                error=str(e),
+                exc_info=True,
+            )
+            logger.info("Falling back to mock classifier")
+            return MockWasteClassifier()
+    
+    elif classifier_type == "clip":
         try:
             from src.ml.classifiers.clip_classifier import CLIPWasteClassifier
             
             logger.info(
-                "Initializing CLIP classifier",
+                "Initializing CLIP classifier (high accuracy, high memory)",
                 model_id=settings.clip_model_id,
                 device=settings.clip_device or "auto",
             )
@@ -53,8 +87,9 @@ def _create_default_classifier() -> BaseClassifier:
             )
             logger.info("Falling back to mock classifier")
             return MockWasteClassifier()
-    else:
-        logger.info("Using mock classifier (USE_CLIP_CLASSIFIER=false)")
+    
+    else:  # mock or any other value
+        logger.info(f"Using mock classifier (ML_CLASSIFIER_TYPE={classifier_type})")
         return MockWasteClassifier()
 
 

@@ -107,12 +107,18 @@ class Settings(BaseSettings):
     )
     ml_batch_size: int = Field(default=32, ge=1, le=128, description="ML batch size")
     
-    # CLIP Model Configuration
+    # Classifier Configuration
+    ml_classifier_type: Literal["clip", "mobilenet", "mock"] = Field(
+        default="mobilenet",
+        description="ML classifier to use: clip (high accuracy, 1GB+ RAM), mobilenet (lightweight, 512MB RAM), mock (rule-based)"
+    )
+    
+    # CLIP Model Configuration (only used if ml_classifier_type=clip)
     use_clip_classifier: bool = Field(
-        default=True, description="Use CLIP model for classification (False = mock classifier)"
+        default=True, description="DEPRECATED: Use ml_classifier_type instead. Use CLIP model for classification (False = mock classifier)"
     )
     clip_model_id: str = Field(
-        default="openai/clip-vit-large-patch14",
+        default="openai/clip-vit-base-patch32",
         description="HuggingFace model ID for CLIP classifier"
     )
     clip_device: str | None = Field(

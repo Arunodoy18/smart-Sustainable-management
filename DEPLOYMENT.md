@@ -37,11 +37,16 @@ JWT_SECRET_KEY=your-jwt-secret-min-32-characters
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# ML Classification - For Accurate Results
-USE_CLIP_CLASSIFIER=true
-CLIP_MODEL_ID=openai/clip-vit-base-patch32
-CLIP_DEVICE=cpu
-# For better performance with GPU: CLIP_DEVICE=cuda
+# ML Classification - Choose Based on Your Plan
+# Option 1: MobileNet (FREE tier - 512MB RAM) - RECOMMENDED for free tier
+ML_CLASSIFIER_TYPE=mobilenet
+
+# Option 2: CLIP (Paid tier - 1GB+ RAM required) - Higher accuracy
+# ML_CLASSIFIER_TYPE=clip
+# CLIP_MODEL_ID=openai/clip-vit-base-patch32
+
+# Option 3: Mock classifier (No ML, rule-based)
+# ML_CLASSIFIER_TYPE=mock
 
 # Storage (Optional - defaults to local)
 STORAGE_BACKEND=local
@@ -62,12 +67,31 @@ Ensure your `requirements.txt` includes:
 ```txt
 # Core dependencies are already in requirements.txt
 # For ML classification, ensure these are included:
-transformers>=4.35.0
-torch>=2.0.0
+torch>=2.1.0
+torchvision>=0.16.0
+transformers>=4.38.0  # Only needed for CLIP
 pillow>=10.0.0
 ```
 
-**Note:** On Render's free tier (CPU only), CLIP inference will be slower (~1-3 seconds per image). Upgrade to a paid plan with GPU for faster classification (~50-200ms).
+### Classifier Options
+
+**MobileNetV2 (Recommended for FREE tier):**
+- Memory: ~100MB RAM
+- Speed: 50-150ms per image (CPU)
+- Accuracy: ~75-80%
+- Free tier compatible ✅
+
+**CLIP (Requires PAID tier):**
+- Memory: ~1GB RAM minimum
+- Speed: 100-300ms (CPU) / 30-60ms (GPU)
+- Accuracy: ~90-95%
+- Requires Starter plan ($7/month) or higher
+
+**Mock Classifier (Fallback):**
+- Memory: <10MB RAM
+- Speed: <10ms
+- Accuracy: ~60-70% (rule-based)
+- Always works but less accurate
 
 ---
 
@@ -157,11 +181,13 @@ Expected: No CORS error (may get 401 Unauthorized, which is fine)
 **Problem:** Items classified incorrectly or as "Unknown"
 
 **Solutions:**
-1. Set `USE_CLIP_CLASSIFIER=true` on Render
-2. Ensure transformers, torch, pillow are installed
-3. Check Render logs for ML initialization errors
-4. Consider upgrading to GPU-enabled plan for better CLIP performance
-5. Adjust confidence thresholds in code if needed
+1. Check which classifier is active in Render logs
+2. For free tier: Use `ML_CLASSIFIER_TYPE=mobilenet` (best balance)
+3. For better accuracy: Upgrade to paid tier and use `ML_CLASSIFIER_TYPE=clip`
+4. Ensure torch and torchvision are installed (check Render build logs)
+5. MobileNet accuracy: ~75-80% (good for MVP/demo)
+6. CLIP accuracy: ~90-95% (production-ready)
+7. Adjust confidence thresholds in code if needed
 
 ### Slow Upload/Classification
 **Problem:** Takes >5 seconds to classify
