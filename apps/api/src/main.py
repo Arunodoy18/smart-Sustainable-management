@@ -101,20 +101,20 @@ app = FastAPI(
 
 # Add CORS middleware FIRST (middleware order is reversed in FastAPI - last added runs first)
 # This ensures CORS headers are added to all responses including errors
+# Parse allowed origins from settings
+allowed_origins_list = [origin.strip() for origin in settings.allowed_origins.split(",")]
+
 # Allow Netlify deploy previews with regex pattern
 origins_regex = r"^https://([a-z0-9-]+--)?wastifi\.netlify\.app$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=origins_regex,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:5173",
-    ],
+    allow_origins=allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
