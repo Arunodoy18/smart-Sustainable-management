@@ -253,25 +253,14 @@ export function DriverPickupsPage() {
             </div>
 
             {/* Customer Info */}
-            {selectedPickup.citizen && (
+            {selectedPickup.user_id && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Customer
+                  Customer ID
                 </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <p className="font-medium text-gray-900">
-                    {selectedPickup.citizen.first_name} {selectedPickup.citizen.last_name}
-                  </p>
-                  {selectedPickup.citizen.phone && (
-                    <a
-                      href={`tel:${selectedPickup.citizen.phone}`}
-                      className="inline-flex items-center gap-1 text-sm font-medium text-primary-600"
-                    >
-                      <PhoneIcon className="h-4 w-4" />
-                      Call
-                    </a>
-                  )}
-                </div>
+                <p className="mt-2 font-medium text-gray-900 text-sm truncate">
+                  {selectedPickup.user_id}
+                </p>
               </div>
             )}
 
@@ -284,45 +273,38 @@ export function DriverPickupsPage() {
                 <p className="mt-1 font-medium text-gray-900">
                   {selectedPickup.scheduled_date
                     ? formatDate(selectedPickup.scheduled_date)
-                    : selectedPickup.preferred_date
-                      ? formatDate(selectedPickup.preferred_date)
-                      : 'Not scheduled'}
+                    : 'Not scheduled'}
                 </p>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Time Slot
+                  Time
                 </p>
                 <p className="mt-1 font-medium capitalize text-gray-900">
-                  {selectedPickup.preferred_time_slot?.replace('_', ' ')}
+                  {selectedPickup.scheduled_time_start || 'Flexible'}
                 </p>
               </div>
             </div>
 
-            {/* Waste Types */}
+            {/* Priority */}
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Waste Types
+                Priority
               </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedPickup.waste_types?.map((type) => (
-                  <span
-                    key={type}
-                    className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium capitalize text-gray-700"
-                  >
-                    {type.replace('_', ' ')}
-                  </span>
-                ))}
+              <div className="mt-2">
+                <Badge variant={selectedPickup.priority === 'HIGH' ? 'danger' : selectedPickup.priority === 'NORMAL' ? 'warning' : 'default'}>
+                  {selectedPickup.priority}
+                </Badge>
               </div>
             </div>
 
-            {/* Notes */}
-            {selectedPickup.notes && (
+            {/* Address Details */}
+            {selectedPickup.address_details && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Notes
+                  Address Details
                 </p>
-                <p className="mt-1 text-gray-700">{selectedPickup.notes}</p>
+                <p className="mt-1 text-gray-700">{selectedPickup.address_details}</p>
               </div>
             )}
 
@@ -396,7 +378,7 @@ function PickupCard({
               <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <ClockIcon className="h-4 w-4" />
-                  {pickup.preferred_time_slot?.replace('_', ' ')}
+                  {pickup.scheduled_time_start || 'Flexible'}
                 </span>
                 <span className="flex items-center gap-1">
                   <Badge variant={STATUS_CONFIG[pickup.status].variant} size="sm">
@@ -405,14 +387,9 @@ function PickupCard({
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap gap-1">
-                {pickup.waste_types?.slice(0, 3).map((type) => (
-                  <span
-                    key={type}
-                    className="rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600"
-                  >
-                    {type}
-                  </span>
-                ))}
+                <Badge variant={pickup.priority === 'HIGH' ? 'danger' : 'default'} size="sm">
+                  {pickup.priority}
+                </Badge>
               </div>
             </div>
           </div>

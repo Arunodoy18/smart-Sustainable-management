@@ -178,10 +178,10 @@ export function DriverDashboardPage() {
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
                       <ClockIcon className="h-4 w-4" />
-                      {pickup.preferred_time_slot?.replace('_', ' ')}
+                      {pickup.scheduled_time_start || 'Flexible'}
                     </span>
-                    {pickup.waste_types && (
-                      <span>• {pickup.waste_types.slice(0, 2).join(', ')}</span>
+                    {pickup.priority && (
+                      <span>• {pickup.priority}</span>
                     )}
                   </div>
                 </div>

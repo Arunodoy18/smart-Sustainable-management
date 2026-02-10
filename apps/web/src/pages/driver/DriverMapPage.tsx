@@ -192,17 +192,12 @@ export function DriverMapPage() {
                   </Badge>
                   <p className="mt-2 font-semibold">{pickup.address}</p>
                   <p className="text-sm text-gray-500">
-                    {pickup.preferred_time_slot?.replace('_', ' ')}
+                    {pickup.scheduled_time_start || 'Flexible'}
                   </p>
                   <div className="mt-2 flex gap-1">
-                    {pickup.waste_types?.slice(0, 2).map((type) => (
-                      <span
-                        key={type}
-                        className="rounded bg-gray-100 px-1.5 py-0.5 text-xs capitalize"
-                      >
-                        {type}
-                      </span>
-                    ))}
+                    <Badge variant={pickup.priority === 'HIGH' ? 'danger' : 'default'} size="sm">
+                      {pickup.priority}
+                    </Badge>
                   </div>
                   <a
                     href={`https://maps.google.com/maps?daddr=${encodeURIComponent(pickup.address)}`}
@@ -289,7 +284,7 @@ export function DriverMapPage() {
                     </p>
                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                       <ClockIcon className="h-3 w-3" />
-                      {pickup.preferred_time_slot?.replace('_', ' ')}
+                      {pickup.scheduled_time_start || 'Flexible'}
                       <Badge variant={STATUS_CONFIG[pickup.status].variant} size="sm">
                         {STATUS_CONFIG[pickup.status].label}
                       </Badge>
