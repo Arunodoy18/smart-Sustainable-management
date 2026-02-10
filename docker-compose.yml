@@ -54,7 +54,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-smartwaste}:${POSTGRES_PASSWORD:-smartwaste_dev}@db:5432/${POSTGRES_DB:-smartwaste}
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-super-secret-key-change-in-production}
-      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost,http://localhost:80
     volumes:
       - ./apps/api/src:/app/src:ro
       - api_logs:/app/logs
