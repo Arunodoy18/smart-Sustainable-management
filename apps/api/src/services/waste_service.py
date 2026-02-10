@@ -214,8 +214,8 @@ class WasteService:
         # Create detailed classification record
         classification = Classification(
             waste_entry_id=entry.id,
-            primary_model_name="mock-classifier",
-            primary_model_version="1.0.0",
+            primary_model_name=result.primary_model,
+            primary_model_version=result.primary_model_version,
             primary_predictions=result.all_predictions,
             primary_confidence=result.confidence,
             primary_category=result.category,

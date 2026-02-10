@@ -29,230 +29,234 @@ logger = get_logger(__name__)
 class MobileNetWasteClassifier(BaseClassifier):
     """
     Lightweight MobileNetV2-based classifier for waste categorization.
-    
+
     Uses transfer learning with MobileNetV2 pretrained features and
     manual feature mapping for waste classification.
-    
+
     Architecture:
     - MobileNetV2 backbone (14MB model)
-    - Custom classification head
+    - ImageNet feature extraction -> waste category mapping
     - Rule-based subcategory assignment
-    
+
     Performance:
     - Model size: ~14MB
     - Inference time: ~50-150ms (CPU)
     - Memory: ~50-100MB RAM total
-    
-    Trade-offs:
-    - Lower accuracy than CLIP (~75% vs 90%)
-    - Much more resource-efficient
-    - Good enough for demos and MVPs
     """
-    
+
     MODEL_ID = "mobilenet_v2"
     MODEL_VERSION = "1.0.0"
     MIN_CONFIDENCE_THRESHOLD = 0.4
-    
+
     def __init__(self, device: str | None = None):
         """Initialize MobileNet classifier."""
-        super().__init__()
-        
-        # Auto-detect device
         if device is None:
-            self.device = torch.device("cpu")  # Always use CPU to save memory
+            self.device = torch.device("cpu")
         else:
             self.device = torch.device(device)
-        
+
         self.model = None
         self.transform = None
-        
+        self._loaded = False
+
         # ImageNet class indices that map to waste categories
-        # Based on visual similarity to waste types
-        self.imagenet_to_waste = {
-            # Organic/Food waste
-            **{i: WasteCategory.ORGANIC for i in range(900, 970)},  # Food items
-            **{i: WasteCategory.ORGANIC for i in [924, 928, 932, 950, 951, 952]},  # Fruits, vegetables
-            
+        self.imagenet_to_waste: dict[int, WasteCategory] = {
+            # Organic/Food waste (ImageNet food classes 924-969)
+            **{i: WasteCategory.ORGANIC for i in range(924, 970)},
+
             # Recyclable materials
             **{i: WasteCategory.RECYCLABLE for i in [
-                509,  # bottle
+                440,  # beer bottle
+                509,  # water bottle
                 648,  # steel drum
                 728,  # plastic bag
-                737,  # pop bottle
-                760,  # can opener
-                907,  # can
+                737,  # pop bottle / soda bottle
+                760,  # jar / can
+                898,  # water jug
+                899,  # wine bottle
+                907,  # bucket
+                910,  # wooden spoon (wood)
             ]},
-            
+
             # Electronic waste
-            **{i: WasteCategory.ELECTRONIC for i in range(600, 650)},  # Appliances
-            **{i: WasteCategory.ELECTRONIC for i in [487, 491, 620, 621, 722, 770, 776]},  # Electronics
-            
+            **{i: WasteCategory.ELECTRONIC for i in [
+                487,  # cell phone
+                491,  # CRT screen
+                527,  # desktop computer
+                528,  # dial telephone
+                590,  # hand-held computer
+                620,  # laptop
+                621,  # LCD screen
+                664,  # monitor
+                681,  # notebook
+                722,  # photocopier
+                770,  # remote control
+                776,  # mouse
+                782,  # screen
+                851,  # television
+            ]},
+
             # Hazardous
-            **{i: WasteCategory.HAZARDOUS for i in [804, 440, 441]},  # Containers, chemicals
+            **{i: WasteCategory.HAZARDOUS for i in [
+                470,  # candle (wax chemicals)
+            ]},
+
+            # Medical
+            **{804: WasteCategory.MEDICAL},  # syringe
         }
-    
-    async def initialize(self) -> None:
-        """Load and prepare MobileNetV2 model."""
-        try:
-            logger.info("Initializing MobileNet classifier", device=str(self.device))
-            
-            # Load pretrained MobileNetV2 (lightweight)
-            self.model = models.mobilenet_v2(pretrained=True)
-            self.model.eval()  # Set to evaluation mode
-            self.model.to(self.device)
-            
-            # Image preprocessing pipeline
-            self.transform = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225]
-                ),
-            ])
-            
-            self._is_initialized = True
-            logger.info(
-                "MobileNet classifier initialized successfully",
-                device=str(self.device),
-                model_size="~14MB",
-            )
-            
-        except Exception as e:
-            logger.error("Failed to initialize MobileNet classifier", error=str(e), exc_info=True)
-            raise
-    
-    async def classify_image(
-        self,
-        image: Image.Image,
-        **kwargs: Any,
-    ) -> ClassificationPrediction:
-        """
-        Classify waste image using MobileNetV2.
-        
-        Args:
-            image: PIL Image to classify
-            **kwargs: Additional arguments (ignored)
-        
-        Returns:
-            Classification prediction with category and confidence
-        """
-        if not self._is_initialized:
-            await self.initialize()
-        
-        try:
-            # Preprocess image
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-            
-            img_tensor = self.transform(image).unsqueeze(0).to(self.device)
-            
-            # Run inference
-            with torch.no_grad():
-                outputs = self.model(img_tensor)
-                probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
-                
-                # Get top predictions
-                top_probs, top_indices = torch.topk(probabilities, k=5)
-                top_probs = top_probs.cpu().numpy()
-                top_indices = top_indices.cpu().numpy()
-            
-            # Map ImageNet classes to waste categories
-            category_scores = {cat: 0.0 for cat in WasteCategory}
-            
-            for prob, idx in zip(top_probs, top_indices):
-                idx = int(idx)
-                if idx in self.imagenet_to_waste:
-                    waste_cat = self.imagenet_to_waste[idx]
-                    category_scores[waste_cat] += float(prob)
-            
-            # Get best category
-            best_category = max(category_scores.items(), key=lambda x: x[1])
-            category = best_category[0]
-            confidence = best_category[1]
-            
-            # If confidence too low, mark as general waste
-            if confidence < self.MIN_CONFIDENCE_THRESHOLD:
-                category = WasteCategory.GENERAL
-                confidence = 0.5
-            
-            # Determine subcategory based on category and image features
-            subcategory = self._determine_subcategory(category, image)
-            
-            logger.info(
-                "Classification complete",
-                category=category.value,
-                subcategory=subcategory.value if subcategory else None,
-                confidence=confidence,
-            )
-            
-            return ClassificationPrediction(
-                category=category,
-                subcategory=subcategory,
-                confidence=confidence,
-                reasoning=f"Detected as {category.value} with {confidence:.0%} confidence using MobileNetV2",
-            )
-            
-        except Exception as e:
-            logger.error("Classification failed", error=str(e), exc_info=True)
-            raise
-    
+
+    # -------------------------------------------------------------------
+    # Required abstract method implementations
+    # -------------------------------------------------------------------
+
+    @property
+    def model_name(self) -> str:
+        return self.MODEL_ID
+
+    @property
+    def model_version(self) -> str:
+        return self.MODEL_VERSION
+
+    async def load(self) -> None:
+        """Load MobileNetV2 model weights (called once at startup)."""
+        if self._loaded:
+            return
+
+        logger.info("Loading MobileNetV2 classifier", device=str(self.device))
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self._load_model_sync)
+
+        self._loaded = True
+        logger.info(
+            "MobileNetV2 classifier loaded",
+            device=str(self.device),
+            model_size="~14MB",
+        )
+
+    def _load_model_sync(self) -> None:
+        """Synchronous model loading (runs in thread pool)."""
+        self.model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.IMAGENET1K_V1)
+        self.model.eval()
+        self.model.to(self.device)
+
+        self.transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225],
+            ),
+        ])
+
+    async def predict(self, image: Image.Image) -> ClassificationPrediction:
+        """Classify a single waste image using MobileNetV2."""
+        if not self._loaded:
+            await self.load()
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self._predict_sync, image)
+
+    def _predict_sync(self, image: Image.Image) -> ClassificationPrediction:
+        """Synchronous prediction (runs in thread pool)."""
+        if not self.model or not self.transform:
+            raise RuntimeError("Model not loaded")
+
+        # Ensure RGB
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        img_tensor = self.transform(image).unsqueeze(0).to(self.device)
+
+        with torch.no_grad():
+            outputs = self.model(img_tensor)
+            probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
+
+            # Top-10 ImageNet predictions
+            top_probs, top_indices = torch.topk(probabilities, k=10)
+            top_probs = top_probs.cpu().numpy()
+            top_indices = top_indices.cpu().numpy()
+
+        # Map ImageNet classes to waste categories
+        category_scores: dict[WasteCategory, float] = {cat: 0.0 for cat in WasteCategory}
+
+        for prob, idx in zip(top_probs, top_indices):
+            idx_int = int(idx)
+            if idx_int in self.imagenet_to_waste:
+                waste_cat = self.imagenet_to_waste[idx_int]
+                category_scores[waste_cat] += float(prob)
+
+        # Best category
+        best_cat = max(category_scores, key=lambda c: category_scores[c])
+        confidence = category_scores[best_cat]
+
+        # Low confidence -> fall back to GENERAL
+        if confidence < self.MIN_CONFIDENCE_THRESHOLD:
+            best_cat = WasteCategory.GENERAL
+            confidence = max(0.45, confidence)
+
+        # Subcategory heuristic
+        subcategory = self._determine_subcategory(best_cat, image)
+
+        raw_scores = {cat.value: round(score, 4) for cat, score in category_scores.items()}
+
+        return ClassificationPrediction(
+            category=best_cat,
+            confidence=confidence,
+            subcategory=subcategory,
+            raw_scores=raw_scores,
+        )
+
+    async def predict_batch(self, images: list[Image.Image]) -> list[ClassificationPrediction]:
+        """Classify multiple images."""
+        return [await self.predict(img) for img in images]
+
+    # -------------------------------------------------------------------
+    # Subcategory heuristic
+    # -------------------------------------------------------------------
+
     def _determine_subcategory(
         self,
         category: WasteCategory,
         image: Image.Image,
     ) -> WasteSubCategory | None:
-        """
-        Determine subcategory using rule-based analysis.
-        
-        This is a simplified heuristic approach. In production,
-        you'd train a proper subcategory classifier.
-        """
-        # Convert image to numpy for basic analysis
-        img_array = np.array(image.resize((224, 224)))
-        
-        # Basic color analysis
+        """Determine subcategory using color-based heuristics."""
+        img_array = np.array(image.resize((64, 64)))
         avg_color = img_array.mean(axis=(0, 1))
-        r, g, b = avg_color
-        
-        # Heuristic rules based on category
+
+        if len(avg_color) < 3:
+            return None
+        r, g, b = avg_color[:3]
+        brightness = (r + g + b) / 3
+
         if category == WasteCategory.ORGANIC:
-            # Green-ish might be garden waste
-            if g > r and g > b:
-                return WasteSubCategory.GARDEN_WASTE
-            return WasteSubCategory.FOOD_WASTE
-        
+            return WasteSubCategory.GARDEN_WASTE if (g > r and g > b) else WasteSubCategory.FOOD_WASTE
         elif category == WasteCategory.RECYCLABLE:
-            # Try to distinguish plastic/paper/glass/metal by color
-            brightness = (r + g + b) / 3
-            if brightness > 200:  # Very bright - likely paper
+            if brightness > 200:
                 return WasteSubCategory.PAPER
-            elif b > r and b > g:  # Blueish - plastic bottles
+            elif b > r and b > g:
                 return WasteSubCategory.PLASTIC
-            elif brightness < 100:  # Dark - metal
+            elif brightness < 100:
                 return WasteSubCategory.METAL
-            elif r > 150:  # Reddish/brown - cardboard
+            elif r > 150:
                 return WasteSubCategory.CARDBOARD
             return WasteSubCategory.GLASS
-        
         elif category == WasteCategory.HAZARDOUS:
-            # Default to batteries (most common)
             return WasteSubCategory.BATTERIES
-        
         elif category == WasteCategory.ELECTRONIC:
-            # Default to small electronics
             return WasteSubCategory.SMALL_ELECTRONICS
-        
-        return None
-    
+        elif category == WasteCategory.MEDICAL:
+            return WasteSubCategory.SHARPS
+
+        return WasteSubCategory.MIXED
+
     async def cleanup(self) -> None:
-        """Clean up resources."""
+        """Release model memory."""
         if self.model is not None:
             del self.model
             self.model = None
-        
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        
+        self._loaded = False
         logger.info("MobileNet classifier cleaned up")
