@@ -206,47 +206,36 @@ export type PickupStatus =
 export interface Pickup {
   id: string;
   user_id: string;
+  waste_entry_id: string;
   driver_id?: string;
   latitude: number;
   longitude: number;
   address: string;
-  scheduled_date: string;
-  scheduled_time_slot: string;
-  preferred_date?: string; // Alternative field name
-  preferred_time_slot?: string; // Alternative field name  
+  address_details?: string;
+  scheduled_date?: string;
+  scheduled_time_start?: string;
+  scheduled_time_end?: string;
   status: PickupStatus;
-  estimated_weight_kg?: number;
-  waste_types: string[];
-  notes?: string;
-  verification_code: string;
-  rating?: number;
-  feedback?: string;
+  priority: string;
+  qr_code?: string;
+  assigned_at?: string;
+  en_route_at?: string;
+  arrived_at?: string;
+  collected_at?: string;
   created_at: string;
   updated_at: string;
-  completed_at?: string;
-  citizen?: {
-    first_name: string;
-    last_name: string;
-    phone?: string;
-  };
-  driver?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    phone?: string;
-    avatar_url?: string;
-  };
 }
 
 export interface PickupRequest {
+  waste_entry_id: string;
   latitude: number;
   longitude: number;
   address: string;
-  scheduled_date: string;
-  scheduled_time_slot: string;
-  waste_types: string[];
-  estimated_weight_kg?: number;
-  notes?: string;
+  address_details?: string;
+  scheduled_date?: string;
+  scheduled_time_start?: string;
+  scheduled_time_end?: string;
+  priority?: string;
 }
 
 // ============================================================================

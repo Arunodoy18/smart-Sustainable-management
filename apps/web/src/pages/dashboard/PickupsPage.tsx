@@ -23,14 +23,16 @@ import {
 
 import { api, cn, formatDate } from '@/lib';
 import { Card, Button, Badge, Input, Modal, EmptyState, Spinner } from '@/components/ui';
-import type { Pickup, PickupStatus, WasteCategory } from '@/types';
+import type { Pickup, PickupStatus, PaginatedResponse, WasteEntry } from '@/types';
 
 const pickupSchema = z.object({
+  waste_entry_id: z.string().min(1, 'Please select a waste entry'),
   address: z.string().min(10, 'Please enter a complete address'),
-  notes: z.string().optional(),
-  preferred_date: z.string().min(1, 'Please select a date'),
-  preferred_time_slot: z.enum(['morning', 'afternoon', 'evening']),
-  waste_types: z.array(z.string()).min(1, 'Select at least one waste type'),
+  address_details: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  scheduled_date: z.string().optional(),
+  priority: z.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']).optional(),
 });
 
 type PickupFormData = z.infer<typeof pickupSchema>;
@@ -45,48 +47,53 @@ const STATUS_CONFIG: Record<PickupStatus, { label: string; color: string; varian
   FAILED: { label: 'Failed', color: 'bg-red-100 text-red-700', variant: 'danger' },
 };
 
-const WASTE_TYPES = [
-  { value: 'recyclable', label: 'Recyclables', icon: '♻️' },
-  { value: 'organic', label: 'Organic Waste', icon: '🌿' },
-  { value: 'electronic', label: 'E-Waste', icon: '📱' },
-  { value: 'hazardous', label: 'Hazardous', icon: '⚠️' },
-  { value: 'general', label: 'General Waste', icon: '🗑️' },
-];
-
-const TIME_SLOTS = [
-  { value: 'morning', label: 'Morning (8AM - 12PM)' },
-  { value: 'afternoon', label: 'Afternoon (12PM - 5PM)' },
-  { value: 'evening', label: 'Evening (5PM - 8PM)' },
-];
-
 export function PickupsPage() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const queryClient = useQueryClient();
 
-  // Fetch pickups
-  const { data: pickups, isLoading } = useQuery({
+  // Fetch pickups - backend returns PaginatedResponse
+  const { data: pickupsData, isLoading } = useQuery({
     queryKey: ['pickups'],
     queryFn: async () => {
-      const { data } = await api.get<Pickup[]>('/api/v1/pickups/my-pickups');
+      const { data } = await api.get<PaginatedResponse<Pickup>>('/api/v1/pickups/my-pickups');
       return data;
     },
   });
+
+  const pickups = pickupsData?.items || [];
+
+  // Fetch waste entries to let user pick one for pickup request
+  const { data: wasteEntriesData } = useQuery({
+    queryKey: ['waste-entries-for-pickup'],
+    queryFn: async () => {
+      const { data } = await api.get<PaginatedResponse<WasteEntry>>('/api/v1/waste/history?page_size=50');
+      return data;
+    },
+    enabled: showRequestModal,
+  });
+
+  const availableEntries = (wasteEntriesData?.items || []).filter(
+    (entry) => entry.status === 'CLASSIFIED' && entry.category
+  );
 
   // Create pickup mutation
   const createPickup = useMutation({
     mutationFn: async (data: PickupFormData) => {
       const { data: result } = await api.post('/api/v1/pickups/request', {
+        waste_entry_id: data.waste_entry_id,
         address: data.address,
-        notes: data.notes,
-        preferred_date: data.preferred_date,
-        preferred_time_slot: data.preferred_time_slot,
-        waste_types: data.waste_types,
+        address_details: data.address_details || null,
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+        scheduled_date: data.scheduled_date || null,
+        priority: data.priority || 'NORMAL',
       });
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pickups'] });
+      queryClient.invalidateQueries({ queryKey: ['waste-entries-for-pickup'] });
       setShowRequestModal(false);
     },
   });
@@ -104,36 +111,24 @@ export function PickupsPage() {
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     reset,
     formState: { errors },
   } = useForm<PickupFormData>({
     resolver: zodResolver(pickupSchema),
     defaultValues: {
-      preferred_time_slot: 'morning',
-      waste_types: [],
+      priority: 'NORMAL',
+      latitude: 0,
+      longitude: 0,
     },
   });
-
-  const selectedWasteTypes = watch('waste_types') || [];
-
-  const toggleWasteType = (type: string) => {
-    const current = selectedWasteTypes;
-    if (current.includes(type)) {
-      setValue('waste_types', current.filter((t) => t !== type));
-    } else {
-      setValue('waste_types', [...current, type]);
-    }
-  };
 
   const onSubmit = (data: PickupFormData) => {
     createPickup.mutate(data);
   };
 
-  const activePickups = pickups?.filter((p) => ['REQUESTED', 'ASSIGNED', 'EN_ROUTE'].includes(p.status)) || [];
-  const completedPickups = pickups?.filter((p) => p.status === 'COLLECTED') || [];
-  const cancelledPickups = pickups?.filter((p) => p.status === 'CANCELLED') || [];
+  const activePickups = pickups.filter((p) => ['REQUESTED', 'ASSIGNED', 'EN_ROUTE'].includes(p.status));
+  const completedPickups = pickups.filter((p) => p.status === 'COLLECTED');
+  const cancelledPickups = pickups.filter((p) => p.status === 'CANCELLED');
 
   const getMinDate = () => {
     const tomorrow = new Date();
@@ -267,6 +262,33 @@ export function PickupsPage() {
         size="lg"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Select Waste Entry */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Waste Entry
+            </label>
+            {availableEntries.length === 0 ? (
+              <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
+                No classified waste entries available. Upload and classify waste first.
+              </p>
+            ) : (
+              <select
+                {...register('waste_entry_id')}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              >
+                <option value="">Select a waste entry...</option>
+                {availableEntries.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.category || 'Unknown'} — {new Date(entry.created_at).toLocaleDateString()}
+                  </option>
+                ))}
+              </select>
+            )}
+            {errors.waste_entry_id && (
+              <p className="mt-1 text-sm text-red-600">{errors.waste_entry_id.message}</p>
+            )}
+          </div>
+
           {/* Address */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -281,77 +303,47 @@ export function PickupsPage() {
             />
           </div>
 
-          {/* Waste Types */}
+          {/* Address Details */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Waste Types
+            <label className="block text-sm font-medium text-gray-700">
+              Address Details (Optional)
             </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {WASTE_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => toggleWasteType(type.value)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg border p-3 text-left transition-colors',
-                    selectedWasteTypes.includes(type.value)
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  <span>{type.icon}</span>
-                  <span className="text-sm font-medium">{type.label}</span>
-                </button>
-              ))}
-            </div>
-            {errors.waste_types && (
-              <p className="mt-1 text-sm text-red-600">{errors.waste_types.message}</p>
-            )}
+            <textarea
+              {...register('address_details')}
+              rows={2}
+              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              placeholder="Apartment number, gate code, special instructions..."
+            />
           </div>
 
-          {/* Date & Time */}
+          {/* Date & Priority */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Preferred Date
+                Preferred Date (Optional)
               </label>
               <Input
                 type="date"
-                {...register('preferred_date')}
+                {...register('scheduled_date')}
                 min={getMinDate()}
-                error={errors.preferred_date?.message}
                 leftIcon={<CalendarIcon className="h-5 w-5" />}
                 className="mt-1"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Time Slot
+                Priority
               </label>
               <select
-                {...register('preferred_time_slot')}
+                {...register('priority')}
                 className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               >
-                {TIME_SLOTS.map((slot) => (
-                  <option key={slot.value} value={slot.value}>
-                    {slot.label}
-                  </option>
-                ))}
+                <option value="LOW">Low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
               </select>
             </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Additional Notes (Optional)
-            </label>
-            <textarea
-              {...register('notes')}
-              rows={3}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-              placeholder="Any special instructions for the driver..."
-            />
           </div>
 
           {/* Actions */}
@@ -367,6 +359,7 @@ export function PickupsPage() {
             <Button
               type="submit"
               loading={createPickup.isPending}
+              disabled={availableEntries.length === 0}
               className="flex-1"
             >
               Request Pickup
@@ -408,10 +401,10 @@ function PickupCard({
               <div>
                 <div className="flex items-center gap-2">
                   <Badge variant={status.variant}>{status.label}</Badge>
-                  {pickup.driver && (
-                    <span className="text-sm text-gray-500">
-                      Driver: {pickup.driver.first_name}
-                    </span>
+                  {pickup.priority && pickup.priority !== 'NORMAL' && (
+                    <Badge variant={pickup.priority === 'URGENT' ? 'danger' : pickup.priority === 'HIGH' ? 'warning' : 'secondary'}>
+                      {pickup.priority}
+                    </Badge>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-gray-600">
@@ -421,30 +414,20 @@ function PickupCard({
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {pickup.waste_types?.map((type) => (
-                <span
-                  key={type}
-                  className="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium capitalize text-gray-700"
-                >
-                  {type.replace('_', ' ')}
-                </span>
-              ))}
-            </div>
-
             <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <CalendarIcon className="h-4 w-4" />
                 {pickup.scheduled_date
                   ? formatDate(pickup.scheduled_date)
-                  : pickup.preferred_date
-                    ? formatDate(pickup.preferred_date)
+                  : pickup.created_at
+                    ? formatDate(pickup.created_at)
                     : 'Not scheduled'}
               </span>
-              <span className="flex items-center gap-1">
-                <ClockIcon className="h-4 w-4" />
-                {pickup.preferred_time_slot?.replace('_', ' ')}
-              </span>
+              {pickup.qr_code && (
+                <span className="text-xs font-mono text-gray-400">
+                  {pickup.qr_code}
+                </span>
+              )}
             </div>
           </div>
 

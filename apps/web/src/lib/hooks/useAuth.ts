@@ -21,8 +21,9 @@ interface LoginCredentials {
 }
 
 interface RegisterData extends LoginCredentials {
-  name: string;
-  role?: 'citizen' | 'driver' | 'admin';
+  first_name: string;
+  last_name: string;
+  role?: 'CITIZEN' | 'DRIVER' | 'ADMIN';
 }
 
 interface ForgotPasswordData {

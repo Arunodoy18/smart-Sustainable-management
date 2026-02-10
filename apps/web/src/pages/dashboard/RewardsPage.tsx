@@ -19,7 +19,7 @@ import {
 
 import { api, cn } from '@/lib';
 import { Card, Badge, Avatar, Progress, Spinner, CircularProgress } from '@/components/ui';
-import type { RewardSummary, Achievement, LeaderboardEntry } from '@/types';
+import type { RewardSummary, Achievement, LeaderboardEntry, Leaderboard } from '@/types';
 
 export function RewardsPage() {
   const [selectedTab, setSelectedTab] = useState(0);
@@ -42,14 +42,16 @@ export function RewardsPage() {
     },
   });
 
-  // Fetch leaderboard
-  const { data: leaderboard } = useQuery({
+  // Fetch leaderboard - backend returns LeaderboardResponse with { entries, user_rank, period }
+  const { data: leaderboardData } = useQuery({
     queryKey: ['rewards', 'leaderboard'],
     queryFn: async () => {
-      const { data } = await api.get<LeaderboardEntry[]>('/api/v1/rewards/leaderboard');
+      const { data } = await api.get<Leaderboard>('/api/v1/rewards/leaderboard');
       return data;
     },
   });
+
+  const leaderboard = leaderboardData?.entries || [];
 
   // Fetch streak info
   const { data: streak } = useQuery({
@@ -112,7 +114,7 @@ export function RewardsPage() {
             <SparklesIcon className="h-6 w-6 text-purple-600" />
           </div>
           <p className="mt-3 text-2xl font-bold text-gray-900">
-            {achievements?.filter((a) => a.earned_at).length || 0}
+            {achievements?.filter((a) => a.earned_at || a.unlocked_at).length || 0}
           </p>
           <p className="text-sm text-gray-500">Achievements</p>
         </Card>
@@ -182,12 +184,12 @@ export function RewardsPage() {
                   <Card
                     className={cn(
                       'relative overflow-hidden transition-all',
-                      achievement.earned_at
+                      (achievement.earned_at || achievement.unlocked_at)
                         ? 'border-primary-200 bg-primary-50/50'
                         : 'opacity-60 grayscale'
                     )}
                   >
-                    {achievement.earned_at && (
+                    {(achievement.earned_at || achievement.unlocked_at) && (
                       <div className="absolute right-2 top-2">
                         <Badge variant="success" size="sm">
                           Earned
@@ -198,7 +200,7 @@ export function RewardsPage() {
                       <div
                         className={cn(
                           'flex h-12 w-12 items-center justify-center rounded-full text-2xl',
-                          achievement.earned_at ? 'bg-primary-100' : 'bg-gray-100'
+                          (achievement.earned_at || achievement.unlocked_at) ? 'bg-primary-100' : 'bg-gray-100'
                         )}
                       >
                         {achievement.icon || '🏆'}
@@ -211,11 +213,11 @@ export function RewardsPage() {
                           {achievement.description}
                         </p>
                         <p className="mt-2 text-sm font-medium text-primary-600">
-                          +{achievement.points_reward} points
+                          +{achievement.points_reward || achievement.points || 0} points
                         </p>
                       </div>
                     </div>
-                    {!achievement.earned_at && achievement.progress !== undefined && (
+                    {!(achievement.earned_at || achievement.unlocked_at) && achievement.progress !== undefined && (
                       <div className="mt-4">
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>Progress</span>
