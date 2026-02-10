@@ -12,6 +12,8 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 from src.core.config import settings
 from src.core.logging import get_logger, setup_logging
@@ -92,19 +94,23 @@ app = FastAPI(
     Include the token in the `Authorization` header as `Bearer <token>`.
     """,
     version="1.0.0",
-    docs_url="/docs" if not settings.is_production else None,
+    docs_url="/docs" if not settings.is_production else "/docs",
     redoc_url="/redoc" if not settings.is_production else None,
-    openapi_url="/openapi.json" if not settings.is_production else None,
+    openapi_url="/openapi.json" if not settings.is_production else "/openapi.json",
     lifespan=lifespan,
 )
 
 
-# Add CORS middleware FIRST (middleware order is reversed in FastAPI - last added runs first)
-# This ensures CORS headers are added to all responses including errors
-# Parse allowed origins from settings
-allowed_origins_list = [origin.strip() for origin in settings.allowed_origins.split(",")]
+# ---------------------------------------------------------------------------
+# CORS – production-hardened
+# ---------------------------------------------------------------------------
+allowed_origins_list = [
+    origin.strip()
+    for origin in settings.allowed_origins.split(",")
+    if origin.strip()
+]
 
-# Allow Netlify deploy previews with regex pattern
+# Netlify deploy-preview pattern
 origins_regex = r"^https://([a-z0-9-]+--)?wastifi\.netlify\.app$"
 
 app.add_middleware(
@@ -112,13 +118,24 @@ app.add_middleware(
     allow_origin_regex=origins_regex,
     allow_origins=allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
+    expose_headers=[
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Reset",
+    ],
+    max_age=600,
 )
 
 
-# Add rate limiting middleware (runs after CORS)
+# Rate limiting – added AFTER CORS (Starlette processes last-added first)
 from src.core.middleware import RateLimitMiddleware
 app.add_middleware(
     RateLimitMiddleware,
@@ -191,61 +208,165 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """Health check endpoint for load balancers."""
-    return {"status": "healthy"}
-
-
-@app.get("/ready", tags=["Health"])
-async def readiness_check():
-    """Readiness check endpoint."""
+    """Health check endpoint for load balancers and Render."""
     from src.core.cache import cache
-    
-    checks = {
+
+    checks: dict[str, bool] = {
         "database": False,
         "cache": False,
+        "ml_model": False,
+        "storage": False,
     }
-    
-    # Check database
+
+    # Database
     try:
         from sqlalchemy import text
         from src.core.database import get_session
-        
+
         async for session in get_session():
             await session.execute(text("SELECT 1"))
             checks["database"] = True
             break
     except Exception as e:
         logger.error("Database health check failed", error=str(e))
-    
-    # Check cache
+
+    # Cache
     try:
         await cache.set("_health_check", "ok", expire=10)
         checks["cache"] = True
-    except Exception as e:
-        logger.error("Cache health check failed", error=str(e))
-    
-    is_ready = all(checks.values())
-    status_code = status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE
-    
-    # Return 200 with degraded status if cache works but DB doesn't (allows app to start)
-    if checks["cache"] and not checks["database"]:
-        status_code = status.HTTP_200_OK
-    
+    except Exception:
+        pass
+
+    # ML
+    try:
+        from src.ml import ClassificationPipeline
+        pipeline = ClassificationPipeline.get_instance()
+        if pipeline._initialized:
+            checks["ml_model"] = True
+    except Exception:
+        pass
+
+    # Storage
+    try:
+        from pathlib import Path
+        if settings.storage_backend == "local":
+            checks["storage"] = True
+        else:
+            checks["storage"] = bool(settings.s3_access_key_id)
+    except Exception:
+        pass
+
+    is_healthy = checks["database"]  # DB is the only hard requirement
     return JSONResponse(
-        status_code=status_code,
+        status_code=status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
         content={
-            "ready": is_ready,
-            "status": "healthy" if is_ready else "degraded",
+            "status": "healthy" if is_healthy else "degraded",
+            "version": "1.0.0",
             "checks": checks,
         },
     )
 
 
+@app.get("/ready", tags=["Health"])
+async def readiness_check():
+    """Readiness check endpoint."""
+    return {"ready": True, "status": "healthy"}
+
+
+# ---------------------------------------------------------------------------
+# Serve uploaded images from local storage
+# ---------------------------------------------------------------------------
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path as _Path
+
+_storage_dir = _Path("./storage")
+_storage_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/storage", StaticFiles(directory=str(_storage_dir)), name="storage")
+
+
+# ---------------------------------------------------------------------------
+# WebSocket endpoint for realtime driver tracking
+# ---------------------------------------------------------------------------
+from fastapi import WebSocket, WebSocketDisconnect
+import json as _json
+
+# In-memory store for connected driver sockets and latest positions
+_driver_connections: dict[str, WebSocket] = {}
+_driver_positions: dict[str, dict] = {}
+_tracking_subscribers: dict[str, list[WebSocket]] = {}  # pickup_id -> [ws]
+
+
+@app.websocket("/ws/driver/{driver_id}")
+async def driver_location_ws(websocket: WebSocket, driver_id: str):
+    """Driver sends location updates via WebSocket."""
+    await websocket.accept()
+    _driver_connections[driver_id] = websocket
+    logger.info("Driver WebSocket connected", driver_id=driver_id)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            payload = _json.loads(data)
+            lat = payload.get("lat") or payload.get("latitude")
+            lng = payload.get("lng") or payload.get("longitude")
+            if lat is not None and lng is not None:
+                import time as _time_mod
+                position = {
+                    "driver_id": driver_id,
+                    "lat": float(lat),
+                    "lng": float(lng),
+                    "timestamp": payload.get("timestamp", _time_mod.time()),
+                }
+                _driver_positions[driver_id] = position
+
+                # Broadcast to all tracking subscribers for any pickup this driver is on
+                for pickup_id, subs in list(_tracking_subscribers.items()):
+                    dead: list[WebSocket] = []
+                    for sub_ws in subs:
+                        try:
+                            await sub_ws.send_json(position)
+                        except Exception:
+                            dead.append(sub_ws)
+                    for d in dead:
+                        subs.remove(d)
+    except WebSocketDisconnect:
+        _driver_connections.pop(driver_id, None)
+        _driver_positions.pop(driver_id, None)
+        logger.info("Driver WebSocket disconnected", driver_id=driver_id)
+
+
+@app.websocket("/ws/track/{pickup_id}")
+async def track_driver_ws(websocket: WebSocket, pickup_id: str):
+    """User subscribes to live driver location for a pickup."""
+    await websocket.accept()
+    _tracking_subscribers.setdefault(pickup_id, []).append(websocket)
+    logger.info("Tracking subscriber connected", pickup_id=pickup_id)
+
+    try:
+        # Send current driver positions immediately
+        for pos in _driver_positions.values():
+            await websocket.send_json(pos)
+        # Keep connection alive, wait for disconnect
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        subs = _tracking_subscribers.get(pickup_id, [])
+        if websocket in subs:
+            subs.remove(websocket)
+        logger.info("Tracking subscriber disconnected", pickup_id=pickup_id)
+
+
+@app.get("/api/v1/drivers/locations", tags=["Realtime"])
+async def get_all_driver_locations():
+    """REST fallback: Get all active driver positions."""
+    return {"drivers": list(_driver_positions.values())}
+
+
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
-        "main:app",
+        "src.main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.is_development,

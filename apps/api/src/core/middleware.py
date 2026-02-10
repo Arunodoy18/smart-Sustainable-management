@@ -10,7 +10,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Callable
 
-from fastapi import Request, Response, HTTPException, status
+from fastapi import Request, Response, status
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from src.core.config import settings
@@ -119,9 +119,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 retry_after=retry_after,
             )
             
-            raise HTTPException(
+            # Return a Response directly instead of raising HTTPException
+            # to ensure CORS headers are preserved on the response.
+            return Response(
+                content='{"detail":"Rate limit exceeded. Please try again later."}',
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Rate limit exceeded. Please try again later.",
+                media_type="application/json",
                 headers={"Retry-After": str(retry_after)},
             )
         
