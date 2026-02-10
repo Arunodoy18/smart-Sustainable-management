@@ -126,8 +126,9 @@ class WasteService:
         count_query = select(func.count()).select_from(query.subquery())
         total = (await self.session.execute(count_query)).scalar() or 0
 
-        # Get entries
+        # Get entries with classification eagerly loaded
         query = query.order_by(WasteEntry.created_at.desc())
+        query = query.options(selectinload(WasteEntry.classification))
         query = query.limit(limit).offset(offset)
 
         result = await self.session.execute(query)

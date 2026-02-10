@@ -96,6 +96,9 @@ async def upload_waste_image(
     # Run AI classification
     classification = await waste_service.classify_entry(entry.id)
     
+    # Refresh entry to get classification results (classify_entry modifies a different object)
+    await session.refresh(entry)
+    
     # Award points for classification (base points based on confidence)
     points_awarded = 0
     if entry.confidence_tier == ClassificationConfidence.HIGH:
@@ -106,11 +109,12 @@ async def upload_waste_image(
         points_awarded = 5   # Low confidence = 5 points
     
     if points_awarded > 0:
+        category_desc = entry.category.value if entry.category else "unknown"
         await rewards_service.award_points(
             user_id=current_user.id,
             points=points_awarded,
             reward_type=RewardType.RECYCLING_POINTS,
-            description=f"Waste classified as {entry.category.value}",
+            description=f"Waste classified as {category_desc}",
             waste_entry_id=entry.id,
         )
     
