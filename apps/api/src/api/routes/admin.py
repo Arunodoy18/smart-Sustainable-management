@@ -311,7 +311,7 @@ async def list_users(
         total=total or 0,
         page=page,
         page_size=page_size,
-        pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
+        total_pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
     )
 
 
@@ -497,7 +497,7 @@ async def list_pickups(
         total=total or 0,
         page=page,
         page_size=page_size,
-        pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
+        total_pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
     )
 
 
@@ -565,7 +565,7 @@ async def list_drivers(
         total=total or 0,
         page=page,
         page_size=page_size,
-        pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
+        total_pages=((total or 0) + page_size - 1) // page_size if page_size else 0,
     )
 
 
