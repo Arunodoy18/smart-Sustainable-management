@@ -10,7 +10,7 @@ import { AxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-import api, { setTokens, clearTokens } from '@/lib/api';
+import api, { setTokens, clearTokens, getRefreshToken } from '@/lib/api';
 import type { TokenResponse, User, ErrorResponse } from '@/types';
 import { useAuthStore } from '@/stores';
 
@@ -101,7 +101,10 @@ export function useLogout(): UseMutationResult<void, AxiosError<ErrorResponse>, 
   return useMutation({
     mutationFn: async () => {
       try {
-        await api.post('/api/v1/auth/logout');
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+          await api.post('/api/v1/auth/logout', { refresh_token: refreshToken });
+        }
       } catch {
         // Ignore logout errors
       }
@@ -119,7 +122,7 @@ export function useLogout(): UseMutationResult<void, AxiosError<ErrorResponse>, 
 export function useForgotPassword(): UseMutationResult<{ message: string }, AxiosError<ErrorResponse>, ForgotPasswordData> {
   return useMutation({
     mutationFn: async (data: ForgotPasswordData) => {
-      const response = await api.post<{ message: string }>('/api/v1/auth/forgot-password', data);
+      const response = await api.post<{ message: string }>('/api/v1/auth/password/reset', data);
       return response.data;
     },
     onSuccess: () => {
@@ -138,7 +141,7 @@ export function useResetPassword(): UseMutationResult<{ message: string }, Axios
 
   return useMutation({
     mutationFn: async (data: ResetPasswordData) => {
-      const response = await api.post<{ message: string }>('/api/v1/auth/reset-password', data);
+      const response = await api.post<{ message: string }>('/api/v1/auth/password/reset/confirm', data);
       return response.data;
     },
     onSuccess: () => {

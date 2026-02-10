@@ -14,7 +14,7 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   page_size: number;
-  pages: number;
+  total_pages: number;
 }
 
 export interface SuccessResponse {
@@ -132,12 +132,28 @@ export interface Classification {
 
 export interface WasteEntry {
   id: string;
+  user_id: string;
   image_url: string;
+  image_thumbnail_url?: string;
   latitude?: number;
   longitude?: number;
   address?: string;
-  notes?: string;
-  classification?: Classification;
+  user_notes?: string;
+  // Classification fields (flat, matching backend WasteEntryResponse)
+  category?: WasteCategory;
+  subcategory?: string;
+  bin_type?: BinType;
+  ai_confidence?: number;
+  confidence_tier?: ConfidenceTier;
+  // User override
+  user_verified: boolean;
+  user_override_category?: WasteCategory;
+  // Status
+  status: string;
+  // Impact
+  estimated_weight_kg?: number;
+  co2_saved_kg?: number;
+  // Points
   points_earned?: number;
   created_at: string;
   updated_at: string;
