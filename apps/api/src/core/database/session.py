@@ -23,15 +23,24 @@ logger = get_logger(__name__)
 # Database URL from settings (use async version)
 database_url = settings.async_database_url
 
-# PostgreSQL async engine with connection pooling
-engine = create_async_engine(
-    database_url,
-    echo=settings.debug,
-    pool_size=settings.database_pool_size if not settings.is_development else 5,
-    max_overflow=settings.database_max_overflow if not settings.is_development else 0,
-    pool_pre_ping=True,  # Enable connection health checks
-    pool_recycle=3600,  # Recycle connections after 1 hour
-)
+# Determine if using SQLite (doesn't support connection pooling params)
+is_sqlite = database_url.startswith("sqlite")
+
+# PostgreSQL async engine with connection pooling (or SQLite without pooling)
+if is_sqlite:
+    engine = create_async_engine(
+        database_url,
+        echo=settings.debug,
+    )
+else:
+    engine = create_async_engine(
+        database_url,
+        echo=settings.debug,
+        pool_size=settings.database_pool_size if not settings.is_development else 5,
+        max_overflow=settings.database_max_overflow if not settings.is_development else 0,
+        pool_pre_ping=True,  # Enable connection health checks
+        pool_recycle=3600,  # Recycle connections after 1 hour
+    )
 
 # Create async engine for testing (no connection pooling)
 test_engine = create_async_engine(
