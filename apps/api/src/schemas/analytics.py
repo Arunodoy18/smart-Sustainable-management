@@ -64,31 +64,33 @@ class DashboardStats(BaseSchema):
     """Admin dashboard statistics."""
 
     # User stats
-    total_users: int
-    active_users_today: int
-    active_users_week: int
-    new_users_today: int
-    new_users_week: int
+    total_users: int = 0
+    active_users_today: int = 0
+    active_users_week: int = 0
+    new_users_today: int = 0
+    new_users_week: int = 0
     
     # Driver stats
-    total_drivers: int
-    active_drivers: int
-    pending_driver_approvals: int
+    total_drivers: int = 0
+    active_drivers: int = 0
+    pending_driver_approvals: int = 0
     
     # Waste stats
-    total_entries_today: int
-    total_entries_week: int
-    entries_by_category: dict[str, int]
+    total_entries: int = 0
+    total_entries_today: int = 0
+    total_entries_week: int = 0
+    entries_by_category: dict[str, int] = Field(default_factory=dict)
     
     # Pickup stats
-    pending_pickups: int
-    completed_pickups_today: int
-    average_pickup_time_minutes: float | None
+    total_pickups: int = 0
+    pending_pickups: int = 0
+    completed_pickups_today: int = 0
+    average_pickup_time_minutes: float | None = None
     
     # Impact
-    co2_saved_today_kg: Decimal
-    co2_saved_week_kg: Decimal
-    recycling_rate: float
+    co2_saved_today_kg: Decimal = Decimal("0")
+    co2_saved_week_kg: Decimal = Decimal("0")
+    recycling_rate: float = 0.0
 
 
 class TimeSeriesDataPoint(BaseSchema):
@@ -142,9 +144,9 @@ class HeatmapPoint(BaseSchema):
 class HeatmapResponse(BaseSchema):
     """Heatmap data for visualization."""
 
-    points: list[HeatmapPoint]
-    max_weight: float
-    bounds: dict[str, float]  # north, south, east, west
+    points: list[HeatmapPoint] = Field(default_factory=list)
+    max_weight: float = 0.0
+    bounds: dict[str, float] = Field(default_factory=dict)  # north, south, east, west
 
 
 class ZoneStatsResponse(BaseSchema):
@@ -263,14 +265,18 @@ class ReportResponse(BaseSchema):
 class ComplianceMetrics(BaseSchema):
     """Recycling compliance metrics."""
 
-    period_start: date
-    period_end: date
-    recycling_rate: float
-    recycling_target: float
-    on_target: bool
-    gap_percentage: float
-    top_recycling_zones: list[dict]
-    improvement_areas: list[dict]
+    period_start: date | None = None
+    period_end: date | None = None
+    total_classifications: int = 0
+    high_confidence_rate: float = 0.0
+    manual_verification_rate: float = 0.0
+    average_confidence: float = 0.0
+    recycling_rate: float = 0.0
+    recycling_target: float = 80.0
+    on_target: bool = False
+    gap_percentage: float = 0.0
+    top_recycling_zones: list[dict] = Field(default_factory=list)
+    improvement_areas: list[dict] = Field(default_factory=list)
 
 
 class ComplianceAlert(BaseSchema):

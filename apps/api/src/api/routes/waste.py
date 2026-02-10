@@ -248,16 +248,17 @@ async def reclassify_waste(
     
     classification = await waste_service.classify_entry(entry_id)
     
+    # Refresh entry — classify_entry updates the WasteEntry in-place
+    await session.refresh(entry)
+    
     return ClassificationResult(
-        category=classification.category,
-        subcategory=classification.subcategory,
-        bin_type=classification.bin_type,
-        confidence=classification.confidence,
-        confidence_tier=classification.confidence_tier,
-        reasoning=classification.reasoning,
-        is_hazardous=classification.is_hazardous,
-        requires_special_handling=classification.requires_special_handling,
-        handling_instructions=classification.handling_instructions,
+        category=entry.category,
+        subcategory=entry.subcategory,
+        bin_type=entry.bin_type,
+        confidence=entry.ai_confidence or classification.primary_confidence,
+        confidence_tier=entry.confidence_tier,
+        all_predictions=classification.primary_predictions or {},
+        requires_verification=classification.requires_manual_review,
     )
 
 
@@ -290,7 +291,7 @@ async def manual_classify(
         )
     
     # Only allow manual classification for low-confidence entries
-    if entry.classification and entry.classification.confidence_tier == ClassificationConfidence.HIGH:
+    if entry.confidence_tier == ClassificationConfidence.HIGH:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Entry already has high-confidence classification",

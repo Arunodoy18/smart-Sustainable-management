@@ -18,6 +18,7 @@ from src.schemas.common import PaginatedResponse, SuccessResponse
 from src.schemas.analytics import (
     DashboardStats,
     ZoneAnalyticsResponse,
+    HeatmapPoint,
     HeatmapResponse,
     ComplianceMetrics,
     SystemHealth,
@@ -67,7 +68,7 @@ async def get_dashboard_stats(
     
     pending_pickups = await session.scalar(
         select(func.count(Pickup.id)).where(
-            Pickup.status.in_([PickupStatus.PENDING, PickupStatus.SCHEDULED])
+            Pickup.status.in_([PickupStatus.REQUESTED, PickupStatus.ASSIGNED])
         )
     )
     
@@ -95,12 +96,11 @@ async def get_dashboard_stats(
     
     return DashboardStats(
         total_users=total_users or 0,
-        total_waste_entries=total_entries or 0,
+        total_entries=total_entries or 0,
         total_pickups=total_pickups or 0,
         pending_pickups=pending_pickups or 0,
         active_drivers=active_drivers or 0,
-        today_entries=today_entries or 0,
-        today_pickups=today_pickups or 0,
+        total_entries_today=today_entries or 0,
     )
 
 
@@ -152,23 +152,37 @@ async def get_heatmap_data(
     
     result = await session.execute(
         select(WasteHotspot).where(
-            WasteHotspot.last_detected >= since
+            WasteHotspot.period_end >= since.date()
         )
     )
     hotspots = result.scalars().all()
     
+    points = [
+        HeatmapPoint(
+            latitude=h.latitude,
+            longitude=h.longitude,
+            weight=float(h.intensity),
+        )
+        for h in hotspots
+    ]
+    
+    max_weight = max((p.weight for p in points), default=0.0)
+    
+    # Calculate bounds from hotspot positions
+    if hotspots:
+        bounds = {
+            "north": max(h.latitude for h in hotspots),
+            "south": min(h.latitude for h in hotspots),
+            "east": max(h.longitude for h in hotspots),
+            "west": min(h.longitude for h in hotspots),
+        }
+    else:
+        bounds = {}
+    
     return HeatmapResponse(
-        points=[
-            {
-                "lat": h.latitude,
-                "lng": h.longitude,
-                "weight": h.intensity,
-                "radius": h.radius,
-                "category": h.primary_category,
-            }
-            for h in hotspots
-        ],
-        generated_at=datetime.utcnow(),
+        points=points,
+        max_weight=max_weight,
+        bounds=bounds,
     )
 
 
@@ -193,15 +207,15 @@ async def get_compliance_metrics(
     
     # High confidence classifications
     high_conf = await session.scalar(
-        select(func.count(Classification.id)).where(
-            Classification.confidence_tier == ClassificationConfidence.HIGH
+        select(func.count(WasteEntry.id)).where(
+            WasteEntry.confidence_tier == ClassificationConfidence.HIGH
         )
     )
     
-    # Manual classifications
+    # Manual classifications (reviewed by a user)
     manual = await session.scalar(
         select(func.count(Classification.id)).where(
-            Classification.verified_by_user_id.isnot(None)
+            Classification.reviewed_by_id.isnot(None)
         )
     )
     
@@ -211,7 +225,7 @@ async def get_compliance_metrics(
         total_classifications=total,
         high_confidence_rate=(high_conf or 0) / total * 100,
         manual_verification_rate=(manual or 0) / total * 100,
-        average_confidence=75.0,  # Would calculate from actual data
+        average_confidence=75.0,
     )
 
 
@@ -377,8 +391,6 @@ async def update_user(
         user.last_name = data.last_name
     if data.phone is not None:
         user.phone = data.phone
-    if data.status is not None:
-        user.status = data.status
     
     await session.flush()
     
@@ -517,12 +529,12 @@ async def assign_pickup(
     from src.services import PickupService
     
     pickup_service = PickupService(session)
-    pickup = await pickup_service.assign_driver(pickup_id, driver_id)
-    
-    if not pickup:
+    try:
+        pickup = await pickup_service.assign_pickup(pickup_id, driver_id)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not assign pickup",
+            detail=str(e),
         )
     
     return SuccessResponse(message="Pickup assigned")
