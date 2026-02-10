@@ -6,13 +6,17 @@ API endpoints for gamification and rewards.
 """
 
 import uuid
+from datetime import date, datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.deps import CurrentUser, DbSession, PublicUser
 from src.schemas.common import PaginatedResponse
 from src.schemas.rewards import (
+    AchievementWithProgress,
     RewardResponse,
     RewardSummary,
     StreakResponse,
@@ -38,7 +42,7 @@ async def get_reward_summary(
     """Get user's reward summary."""
     rewards_service = RewardsService(session)
     summary = await rewards_service.get_user_reward_summary(current_user.id)
-    
+
     return summary
 
 
@@ -55,14 +59,23 @@ async def get_reward_history(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """Get user's reward transaction history."""
-    rewards_service = RewardsService(session)
-    
-    rewards, total = await rewards_service.get_user_rewards(
-        user_id=current_user.id,
-        page=page,
-        page_size=page_size,
-    )
-    
+    from src.models.rewards import Reward
+
+    # Query rewards directly since service may not have paginated method
+    limit = page_size
+    offset = (page - 1) * page_size
+
+    query = select(Reward).where(Reward.user_id == current_user.id)
+
+    # Count total
+    count_query = select(func.count()).select_from(query.subquery())
+    total = (await session.execute(count_query)).scalar() or 0
+
+    # Get rewards
+    query = query.order_by(Reward.created_at.desc()).limit(limit).offset(offset)
+    result = await session.execute(query)
+    rewards = list(result.scalars().all())
+
     return PaginatedResponse(
         items=[RewardResponse.from_reward(r) for r in rewards],
         total=total,
@@ -84,23 +97,13 @@ async def get_streak(
 ):
     """Get user's streak information."""
     rewards_service = RewardsService(session)
-    streak = await rewards_service.get_user_streak(current_user.id)
-    
-    if not streak:
-        return StreakResponse(
-            current_streak=0,
-            longest_streak=0,
-            last_activity_date=None,
-            next_milestone=7,
-            progress_to_next=0.0,
-        )
-    
-    return StreakResponse.from_streak(streak)
+    # Service get_streak() returns StreakResponse directly
+    return await rewards_service.get_streak(current_user.id)
 
 
 @router.get(
     "/achievements",
-    response_model=list[AchievementResponse],
+    response_model=list[AchievementWithProgress],
     summary="Get achievements",
     description="Get all achievements and user's progress.",
 )
@@ -110,14 +113,32 @@ async def get_achievements(
 ):
     """Get all achievements with user's progress."""
     rewards_service = RewardsService(session)
-    achievements = await rewards_service.get_all_achievements(current_user.id)
-    
-    return [AchievementResponse.from_achievement(a, unlocked) for a, unlocked in achievements]
+    results = await rewards_service.get_user_achievements(current_user.id)
+
+    response = []
+    for achievement, user_achievement in results:
+        item = AchievementWithProgress(
+            id=achievement.id,
+            code=achievement.code,
+            name=achievement.name,
+            description=achievement.description,
+            category=achievement.category,
+            icon=achievement.icon,
+            badge_color=getattr(achievement, 'badge_color', '#6366F1'),
+            tier=achievement.tier,
+            points_reward=achievement.points_reward,
+            earned_at=user_achievement.completed_at if user_achievement and user_achievement.completed else None,
+            progress=user_achievement.progress if user_achievement else 0,
+            target=achievement.requirement_value,
+        )
+        response.append(item)
+
+    return response
 
 
 @router.get(
     "/achievements/recent",
-    response_model=list[AchievementResponse],
+    response_model=list[AchievementWithProgress],
     summary="Get recent achievements",
     description="Get recently unlocked achievements.",
 )
@@ -127,13 +148,38 @@ async def get_recent_achievements(
     limit: int = Query(5, ge=1, le=20),
 ):
     """Get recently unlocked achievements."""
-    rewards_service = RewardsService(session)
-    achievements = await rewards_service.get_recent_achievements(
-        user_id=current_user.id,
-        limit=limit,
+    from src.models.rewards import Achievement, UserAchievement
+
+    # Query recent completed achievements
+    result = await session.execute(
+        select(Achievement, UserAchievement)
+        .join(UserAchievement, UserAchievement.achievement_id == Achievement.id)
+        .where(
+            UserAchievement.user_id == current_user.id,
+            UserAchievement.completed == True,
+        )
+        .order_by(UserAchievement.completed_at.desc())
+        .limit(limit)
     )
-    
-    return [AchievementResponse.from_achievement(a, unlocked=True) for a in achievements]
+    rows = result.all()
+
+    return [
+        AchievementWithProgress(
+            id=a.id,
+            code=a.code,
+            name=a.name,
+            description=a.description,
+            category=a.category,
+            icon=a.icon,
+            badge_color=getattr(a, 'badge_color', '#6366F1'),
+            tier=a.tier,
+            points_reward=a.points_reward,
+            earned_at=ua.completed_at,
+            progress=ua.progress,
+            target=a.requirement_value,
+        )
+        for a, ua in rows
+    ]
 
 
 @router.get(
@@ -150,17 +196,12 @@ async def get_leaderboard(
 ):
     """Get leaderboard rankings."""
     rewards_service = RewardsService(session)
-    
-    entries, user_rank = await rewards_service.get_leaderboard(
-        user_id=current_user.id,
+
+    # Service get_leaderboard() returns LeaderboardResponse directly
+    return await rewards_service.get_leaderboard(
         period=period,
         limit=limit,
-    )
-    
-    return LeaderboardResponse(
-        entries=entries,
-        user_rank=user_rank,
-        period=period,
+        user_id=current_user.id,
     )
 
 
@@ -214,17 +255,15 @@ async def get_levels():
 )
 async def get_point_values():
     """Get point values for actions."""
-    from src.models.rewards import RewardType
-    
     return {
         "actions": [
-            {"action": RewardType.WASTE_ENTRY.value, "points": 10, "description": "Upload waste image"},
-            {"action": RewardType.CORRECT_CLASSIFICATION.value, "points": 5, "description": "AI classification verified"},
-            {"action": RewardType.PICKUP_COMPLETED.value, "points": 25, "description": "Complete a pickup"},
-            {"action": RewardType.DAILY_STREAK.value, "points": 15, "description": "Daily activity bonus"},
-            {"action": RewardType.WEEKLY_STREAK.value, "points": 50, "description": "7-day streak bonus"},
-            {"action": RewardType.REFERRAL.value, "points": 100, "description": "Refer a friend"},
-            {"action": RewardType.ACHIEVEMENT.value, "points": "varies", "description": "Unlock achievement"},
+            {"action": "waste_entry", "points": 10, "description": "Upload waste image"},
+            {"action": "correct_classification", "points": 5, "description": "AI classification verified"},
+            {"action": "pickup_completed", "points": 25, "description": "Complete a pickup"},
+            {"action": "daily_streak", "points": 15, "description": "Daily activity bonus"},
+            {"action": "weekly_streak", "points": 50, "description": "7-day streak bonus"},
+            {"action": "referral", "points": 100, "description": "Refer a friend"},
+            {"action": "achievement", "points": "varies", "description": "Unlock achievement"},
         ],
         "multipliers": [
             {"name": "Level 2 bonus", "multiplier": 1.05},
@@ -247,14 +286,52 @@ async def claim_daily_bonus(
     session: DbSession,
 ):
     """Claim daily login bonus."""
+    from src.models.rewards import Reward, RewardType
+
     rewards_service = RewardsService(session)
-    
-    reward = await rewards_service.claim_daily_bonus(current_user.id)
-    
-    if not reward:
+
+    # Check if already claimed today
+    today = date.today()
+    result = await session.execute(
+        select(Reward).where(
+            Reward.user_id == current_user.id,
+            Reward.reward_type == RewardType.STREAK_BONUS,
+            func.date(Reward.created_at) == today,
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Daily bonus already claimed today",
         )
-    
+
+    # Award daily bonus and update streak
+    streak, bonus = await rewards_service.update_streak(current_user.id)
+
+    # Award base daily points if no streak bonus was given
+    if bonus == 0:
+        reward = await rewards_service.award_points(
+            user_id=current_user.id,
+            points=5,
+            reward_type=RewardType.STREAK_BONUS,
+            description="Daily login bonus",
+        )
+    else:
+        # Streak bonus was already awarded inside update_streak
+        result = await session.execute(
+            select(Reward)
+            .where(Reward.user_id == current_user.id)
+            .order_by(Reward.created_at.desc())
+            .limit(1)
+        )
+        reward = result.scalar_one_or_none()
+
+    if not reward:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create reward",
+        )
+
     return RewardResponse.from_reward(reward)

@@ -22,7 +22,7 @@ from src.schemas.common import PaginatedResponse, SuccessResponse
 from src.schemas.pickup import (
     PickupRequest,
     PickupResponse,
-    PickupDetail,
+    PickupDetailResponse,
     DriverPickupComplete,
     DriverLocationUpdate,
 )
@@ -49,12 +49,18 @@ async def request_pickup(
 ):
     """Request a new waste pickup."""
     pickup_service = PickupService(session)
-    
-    pickup = await pickup_service.request_pickup(
-        user_id=current_user.id,
-        data=data,
-    )
-    
+
+    try:
+        pickup = await pickup_service.request_pickup(
+            user_id=current_user.id,
+            data=data,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
     return PickupResponse.from_pickup(pickup)
 
 
@@ -69,18 +75,22 @@ async def get_my_pickups(
     session: DbSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: PickupStatus | None = Query(None),
+    pickup_status: PickupStatus | None = Query(None, alias="status"),
 ):
     """Get user's pickup history."""
     pickup_service = PickupService(session)
-    
+
+    # Convert page/page_size to limit/offset for service
+    limit = page_size
+    offset = (page - 1) * page_size
+
     pickups, total = await pickup_service.get_user_pickups(
         user_id=current_user.id,
-        page=page,
-        page_size=page_size,
-        status=status,
+        status=pickup_status,
+        limit=limit,
+        offset=offset,
     )
-    
+
     return PaginatedResponse(
         items=[PickupResponse.from_pickup(p) for p in pickups],
         total=total,
@@ -92,7 +102,7 @@ async def get_my_pickups(
 
 @router.get(
     "/{pickup_id}",
-    response_model=PickupDetail,
+    response_model=PickupDetailResponse,
     summary="Get pickup details",
     description="Get details of a specific pickup.",
 )
@@ -104,25 +114,25 @@ async def get_pickup(
     """Get pickup details."""
     pickup_service = PickupService(session)
     pickup = await pickup_service.get_pickup(pickup_id)
-    
+
     if not pickup:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pickup not found",
         )
-    
+
     # Check access: owner, assigned driver, or admin
     is_owner = pickup.user_id == current_user.id
     is_assigned_driver = pickup.driver_id == current_user.id
     is_admin = current_user.role == UserRole.ADMIN
-    
+
     if not (is_owner or is_assigned_driver or is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied",
         )
-    
-    return PickupDetail.from_pickup(pickup)
+
+    return PickupDetailResponse.from_pickup(pickup)
 
 
 @router.post(
@@ -139,27 +149,37 @@ async def cancel_pickup(
     """Cancel a pickup request."""
     pickup_service = PickupService(session)
     pickup = await pickup_service.get_pickup(pickup_id)
-    
+
     if not pickup:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pickup not found",
         )
-    
+
     if pickup.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied",
         )
-    
-    if pickup.status not in [PickupStatus.PENDING, PickupStatus.SCHEDULED]:
+
+    if pickup.status not in [PickupStatus.REQUESTED, PickupStatus.ASSIGNED]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot cancel pickup in current status",
         )
-    
-    await pickup_service.cancel_pickup(pickup_id)
-    
+
+    try:
+        await pickup_service.cancel_pickup(
+            pickup_id=pickup_id,
+            cancelled_by=current_user.id,
+            reason="Cancelled by user",
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
     return SuccessResponse(message="Pickup cancelled")
 
 
@@ -179,27 +199,38 @@ async def rate_pickup(
     """Rate a completed pickup."""
     pickup_service = PickupService(session)
     pickup = await pickup_service.get_pickup(pickup_id)
-    
+
     if not pickup:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Pickup not found",
         )
-    
+
     if pickup.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied",
         )
-    
-    if pickup.status != PickupStatus.COMPLETED:
+
+    if pickup.status != PickupStatus.COLLECTED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Can only rate completed pickups",
         )
-    
-    await pickup_service.rate_pickup(pickup_id, rating, feedback)
-    
+
+    try:
+        await pickup_service.rate_pickup(
+            pickup_id=pickup_id,
+            user_id=current_user.id,
+            rating=rating,
+            feedback=feedback,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
     return SuccessResponse(message="Rating submitted")
 
 
@@ -217,19 +248,17 @@ async def rate_pickup(
 async def get_available_pickups(
     current_user: PublicUser,
     session: DbSession,
-    latitude: float = Query(..., ge=-90, le=90),
-    longitude: float = Query(..., ge=-180, le=180),
+    latitude: float = Query(None, ge=-90, le=90),
+    longitude: float = Query(None, ge=-180, le=180),
     radius_km: float = Query(10.0, ge=1, le=50),
 ):
     """Get pickups available for assignment near driver."""
     pickup_service = PickupService(session)
-    
+
     pickups = await pickup_service.get_available_pickups(
-        latitude=latitude,
-        longitude=longitude,
-        radius_km=radius_km,
+        driver_id=current_user.id,
     )
-    
+
     return [PickupResponse.from_pickup(p) for p in pickups]
 
 
@@ -246,9 +275,11 @@ async def get_assigned_pickups(
 ):
     """Get driver's assigned pickups."""
     pickup_service = PickupService(session)
-    
-    pickups = await pickup_service.get_driver_active_pickups(current_user.id)
-    
+
+    pickups = await pickup_service.get_driver_pickups(
+        driver_id=current_user.id,
+    )
+
     return [PickupResponse.from_pickup(p) for p in pickups]
 
 
@@ -266,18 +297,18 @@ async def accept_pickup(
 ):
     """Accept a pickup as driver."""
     pickup_service = PickupService(session)
-    
-    pickup = await pickup_service.assign_driver(
-        pickup_id=pickup_id,
-        driver_id=current_user.id,
-    )
-    
-    if not pickup:
+
+    try:
+        pickup = await pickup_service.assign_pickup(
+            pickup_id=pickup_id,
+            driver_id=current_user.id,
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pickup not available for assignment",
+            detail=str(e),
         )
-    
+
     return PickupResponse.from_pickup(pickup)
 
 
@@ -295,18 +326,18 @@ async def mark_en_route(
 ):
     """Mark driver as en route to pickup."""
     pickup_service = PickupService(session)
-    
-    pickup = await pickup_service.mark_en_route(
-        pickup_id=pickup_id,
-        driver_id=current_user.id,
-    )
-    
-    if not pickup:
+
+    try:
+        pickup = await pickup_service.driver_start_route(
+            pickup_id=pickup_id,
+            driver_id=current_user.id,
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update pickup status",
+            detail=str(e),
         )
-    
+
     return PickupResponse.from_pickup(pickup)
 
 
@@ -324,18 +355,18 @@ async def mark_arrived(
 ):
     """Mark driver as arrived at pickup location."""
     pickup_service = PickupService(session)
-    
-    pickup = await pickup_service.mark_arrived(
-        pickup_id=pickup_id,
-        driver_id=current_user.id,
-    )
-    
-    if not pickup:
+
+    try:
+        pickup = await pickup_service.driver_arrive(
+            pickup_id=pickup_id,
+            driver_id=current_user.id,
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update pickup status",
+            detail=str(e),
         )
-    
+
     return PickupResponse.from_pickup(pickup)
 
 
@@ -354,21 +385,19 @@ async def complete_pickup(
 ):
     """Complete a pickup with verification."""
     pickup_service = PickupService(session)
-    
-    pickup = await pickup_service.complete_pickup(
-        pickup_id=pickup_id,
-        driver_id=current_user.id,
-        verification_code=data.verification_code,
-        notes=data.notes,
-        photo_url=data.photo_url,
-    )
-    
-    if not pickup:
+
+    try:
+        pickup = await pickup_service.driver_complete_pickup(
+            pickup_id=pickup_id,
+            driver_id=current_user.id,
+            data=data,
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot complete pickup",
+            detail=str(e),
         )
-    
+
     return PickupResponse.from_pickup(pickup)
 
 
@@ -386,13 +415,13 @@ async def update_driver_location(
 ):
     """Update driver's live location."""
     pickup_service = PickupService(session)
-    
+
     await pickup_service.update_driver_location(
         driver_id=current_user.id,
         latitude=data.latitude,
         longitude=data.longitude,
     )
-    
+
     return SuccessResponse(message="Location updated")
 
 
@@ -408,7 +437,19 @@ async def get_driver_stats(
 ):
     """Get driver's statistics."""
     pickup_service = PickupService(session)
-    
-    stats = await pickup_service.get_driver_stats(current_user.id)
-    
-    return stats
+
+    # Return basic stats from driver pickups
+    pickups = await pickup_service.get_driver_pickups(
+        driver_id=current_user.id,
+        limit=1000,
+    )
+
+    completed = [p for p in pickups if p.status == PickupStatus.COLLECTED]
+
+    return {
+        "total_pickups": len(pickups),
+        "completed_pickups": len(completed),
+        "active_pickups": len([p for p in pickups if p.status in [
+            PickupStatus.ASSIGNED, PickupStatus.EN_ROUTE, PickupStatus.ARRIVED
+        ]]),
+    }
