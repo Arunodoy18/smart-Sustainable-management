@@ -53,7 +53,7 @@ export function AdminDashboardPage() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: async () => {
-      const { data } = await api.get<AdminStats>('/admin/stats');
+      const { data } = await api.get<AdminStats>('/api/v1/admin/dashboard');
       return data;
     },
   });
@@ -62,7 +62,7 @@ export function AdminDashboardPage() {
   const { data: activity } = useQuery({
     queryKey: ['admin', 'activity'],
     queryFn: async () => {
-      const { data } = await api.get<RecentActivity[]>('/admin/activity');
+      const { data } = await api.get<RecentActivity[]>('/api/v1/admin/dashboard');
       return data;
     },
   });
@@ -71,7 +71,7 @@ export function AdminDashboardPage() {
   const { data: health } = useQuery({
     queryKey: ['admin', 'health'],
     queryFn: async () => {
-      const { data } = await api.get<SystemHealth>('/admin/health');
+      const { data } = await api.get<SystemHealth>('/api/v1/admin/health');
       return data;
     },
   });

@@ -233,24 +233,24 @@ export function DashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium text-gray-900">
-                      {entry.classification?.category?.replace('_', ' ') || 'PENDING'}
+                      {entry.category?.replace('_', ' ') || 'PENDING'}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(entry.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  {entry.classification && (
+                  {entry.ai_confidence != null && (
                     <Badge
                       variant={
-                        entry.classification.confidence_tier === 'HIGH'
+                        entry.confidence_tier === 'HIGH'
                           ? 'success'
-                          : entry.classification.confidence_tier === 'MEDIUM'
+                          : entry.confidence_tier === 'MEDIUM'
                           ? 'warning'
                           : 'danger'
                       }
                       dot
                     >
-                      {Math.round(entry.classification.confidence * 100)}%
+                      {Math.round(entry.ai_confidence * 100)}%
                     </Badge>
                   )}
                 </div>

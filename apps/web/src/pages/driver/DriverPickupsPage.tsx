@@ -42,7 +42,7 @@ export function DriverPickupsPage() {
   const { data: pickups, isLoading } = useQuery({
     queryKey: ['driver', 'pickups'],
     queryFn: async () => {
-      const { data } = await api.get<Pickup[]>('/pickups/driver/assigned');
+      const { data } = await api.get<Pickup[]>('/api/v1/pickups/driver/assigned');
       return data;
     },
   });
@@ -50,7 +50,7 @@ export function DriverPickupsPage() {
   // Start pickup mutation
   const startPickup = useMutation({
     mutationFn: async (pickupId: string) => {
-      await api.post(`/api/v1/pickups/driver/${pickupId}/start`);
+      await api.post(`/api/v1/pickups/driver/${pickupId}/en-route`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['driver', 'pickups'] });

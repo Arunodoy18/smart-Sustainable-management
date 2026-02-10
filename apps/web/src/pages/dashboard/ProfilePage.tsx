@@ -83,7 +83,7 @@ export function ProfilePage() {
   // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      await api.patch('/api/v1/auth/profile', data);
+      await api.patch('/api/v1/auth/me', data);
     },
     onSuccess: async () => {
       await refreshUser(); // Refresh user data from server
@@ -95,7 +95,7 @@ export function ProfilePage() {
   // Update password mutation
   const updatePassword = useMutation({
     mutationFn: async (data: PasswordFormData) => {
-      await api.post('/api/v1/auth/change-password', {
+      await api.post('/api/v1/auth/password/change', {
         current_password: data.current_password,
         new_password: data.new_password,
       });

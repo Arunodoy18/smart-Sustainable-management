@@ -58,7 +58,7 @@ export function AdminUsersPage() {
       if (statusFilter) params.append('status', statusFilter);
       if (search) params.append('search', search);
       
-      const { data } = await api.get<User[]>(`/admin/users?${params}`);
+      const { data } = await api.get<User[]>(`/api/v1/admin/users?${params}`);
       return data;
     },
   });
@@ -66,7 +66,7 @@ export function AdminUsersPage() {
   // Update user status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ userId, status }: { userId: string; status: UserStatus }) => {
-      await api.patch(`/api/v1/admin/users/${userId}/status`, { status });
+      await api.patch(`/api/v1/admin/users/${userId}`, { status });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ADMIN', 'users'] });

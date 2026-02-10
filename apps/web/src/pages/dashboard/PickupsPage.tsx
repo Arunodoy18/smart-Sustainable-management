@@ -68,7 +68,7 @@ export function PickupsPage() {
   const { data: pickups, isLoading } = useQuery({
     queryKey: ['pickups'],
     queryFn: async () => {
-      const { data } = await api.get<Pickup[]>('/pickups');
+      const { data } = await api.get<Pickup[]>('/api/v1/pickups/my-pickups');
       return data;
     },
   });
@@ -76,7 +76,7 @@ export function PickupsPage() {
   // Create pickup mutation
   const createPickup = useMutation({
     mutationFn: async (data: PickupFormData) => {
-      const { data: result } = await api.post('/api/v1/pickups', {
+      const { data: result } = await api.post('/api/v1/pickups/request', {
         address: data.address,
         notes: data.notes,
         preferred_date: data.preferred_date,

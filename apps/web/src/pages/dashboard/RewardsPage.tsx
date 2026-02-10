@@ -28,7 +28,7 @@ export function RewardsPage() {
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ['rewards', 'summary'],
     queryFn: async () => {
-      const { data } = await api.get<RewardSummary>('/rewards/summary');
+      const { data } = await api.get<RewardSummary>('/api/v1/rewards/summary');
       return data;
     },
   });
@@ -37,7 +37,7 @@ export function RewardsPage() {
   const { data: achievements } = useQuery({
     queryKey: ['rewards', 'achievements'],
     queryFn: async () => {
-      const { data } = await api.get<Achievement[]>('/rewards/achievements');
+      const { data } = await api.get<Achievement[]>('/api/v1/rewards/achievements');
       return data;
     },
   });
@@ -46,7 +46,7 @@ export function RewardsPage() {
   const { data: leaderboard } = useQuery({
     queryKey: ['rewards', 'leaderboard'],
     queryFn: async () => {
-      const { data } = await api.get<LeaderboardEntry[]>('/rewards/leaderboard');
+      const { data } = await api.get<LeaderboardEntry[]>('/api/v1/rewards/leaderboard');
       return data;
     },
   });

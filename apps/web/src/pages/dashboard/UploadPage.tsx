@@ -118,8 +118,9 @@ export function UploadPage() {
       black: { color: 'text-gray-800', bg: 'bg-gray-200', icon: '🗑️' },
       yellow: { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⚡' },
       red: { color: 'text-red-600', bg: 'bg-red-100', icon: '☠️' },
+      special: { color: 'text-purple-600', bg: 'bg-purple-100', icon: '⚗️' },
     };
-    return bins[bin] || bins.black;
+    return bins[bin.toLowerCase()] || bins.black;
   };
 
   return (
@@ -314,7 +315,7 @@ export function UploadPage() {
                               getBinInfo(result.bin_type).color
                             }`}
                           >
-                            {result.bin_type} Bin
+                            {result.bin_type.toLowerCase()} Bin
                           </p>
                         </div>
                       </div>
@@ -396,8 +397,27 @@ export function UploadPage() {
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <p className="font-medium text-red-800">Upload Failed</p>
                 <p className="mt-1 text-sm text-red-700">
-                  Something went wrong. Please try again.
+                  {(uploadMutation.error as any)?.response?.data?.detail || 'Something went wrong. Please try again.'}
                 </p>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      uploadMutation.reset();
+                      if (file) uploadMutation.mutate(file);
+                    }}
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClear}
+                  >
+                    Start Over
+                  </Button>
+                </div>
               </div>
             )}
           </motion.div>

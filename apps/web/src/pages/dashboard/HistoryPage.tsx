@@ -54,12 +54,12 @@ export function HistoryPage() {
         total: number;
         page: number;
         page_size: number;
-        pages: number;
+        total_pages: number;
       };
     },
   });
 
-  const totalPages = data?.pages || 1;
+  const totalPages = data?.total_pages || 1;
 
   const handlePageChange = (newPage: number) => {
     setSearchParams({ page: newPage.toString() });
@@ -72,8 +72,9 @@ export function HistoryPage() {
       black: { color: 'text-gray-800', bg: 'bg-gray-200', icon: '🗑️' },
       yellow: { color: 'text-yellow-600', bg: 'bg-yellow-100', icon: '⚡' },
       red: { color: 'text-red-600', bg: 'bg-red-100', icon: '☠️' },
+      special: { color: 'text-purple-600', bg: 'bg-purple-100', icon: '⚗️' },
     };
-    return bins[bin] || bins.black;
+    return bins[bin.toLowerCase()] || bins.black;
   };
 
   return (
@@ -174,46 +175,46 @@ export function HistoryPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="font-semibold capitalize text-gray-900">
-                          {entry.classification?.category?.replace('_', ' ') || 'PENDING'}
+                          {entry.category?.replace('_', ' ') || 'PENDING'}
                         </h3>
-                        {entry.classification?.sub_category && (
+                        {entry.subcategory && (
                           <p className="text-sm capitalize text-gray-600">
-                            {entry.classification.sub_category.replace('_', ' ')}
+                            {entry.subcategory.replace('_', ' ')}
                           </p>
                         )}
                       </div>
-                      {entry.classification && (
+                      {entry.ai_confidence != null && (
                         <Badge
                           variant={
-                            entry.classification.confidence_tier === 'HIGH'
+                            entry.confidence_tier === 'HIGH'
                               ? 'success'
-                              : entry.classification.confidence_tier === 'MEDIUM'
+                              : entry.confidence_tier === 'MEDIUM'
                               ? 'warning'
                               : 'danger'
                           }
                           size="sm"
                         >
-                          {Math.round(entry.classification.confidence * 100)}%
+                          {Math.round(entry.ai_confidence * 100)}%
                         </Badge>
                       )}
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                      {entry.classification?.recommended_bin && (
+                      {entry.bin_type && (
                         <span
                           className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
-                            getBinInfo(entry.classification.recommended_bin).bg
+                            getBinInfo(entry.bin_type.toLowerCase()).bg
                           }`}
                         >
                           <span>
-                            {getBinInfo(entry.classification.recommended_bin).icon}
+                            {getBinInfo(entry.bin_type.toLowerCase()).icon}
                           </span>
                           <span
                             className={`font-medium capitalize ${
-                              getBinInfo(entry.classification.recommended_bin).color
+                              getBinInfo(entry.bin_type.toLowerCase()).color
                             }`}
                           >
-                            {entry.classification.recommended_bin} bin
+                            {entry.bin_type.toLowerCase()} bin
                           </span>
                         </span>
                       )}
@@ -291,7 +292,7 @@ export function HistoryPage() {
                   Category
                 </p>
                 <p className="mt-1 text-lg font-semibold capitalize text-gray-900">
-                  {selectedEntry.classification?.category?.replace('_', ' ') || 'N/A'}
+                  {selectedEntry.category?.replace('_', ' ') || 'N/A'}
                 </p>
               </div>
               <div>
@@ -299,17 +300,17 @@ export function HistoryPage() {
                   Confidence
                 </p>
                 <div className="mt-1 flex items-center gap-2">
-                  {selectedEntry.classification && (
+                  {selectedEntry.ai_confidence != null && (
                     <Badge
                       variant={
-                        selectedEntry.classification.confidence_tier === 'HIGH'
+                        selectedEntry.confidence_tier === 'HIGH'
                           ? 'success'
-                          : selectedEntry.classification.confidence_tier === 'MEDIUM'
+                          : selectedEntry.confidence_tier === 'MEDIUM'
                           ? 'warning'
                           : 'danger'
                       }
                     >
-                      {Math.round(selectedEntry.classification.confidence * 100)}%
+                      {Math.round(selectedEntry.ai_confidence * 100)}%
                     </Badge>
                   )}
                 </div>
@@ -317,37 +318,25 @@ export function HistoryPage() {
             </div>
 
             {/* Bin recommendation */}
-            {selectedEntry.classification?.recommended_bin && (
+            {selectedEntry.bin_type && (
               <div
                 className={`flex items-center gap-4 rounded-lg p-4 ${
-                  getBinInfo(selectedEntry.classification.recommended_bin).bg
+                  getBinInfo(selectedEntry.bin_type.toLowerCase()).bg
                 }`}
               >
                 <span className="text-3xl">
-                  {getBinInfo(selectedEntry.classification.recommended_bin).icon}
+                  {getBinInfo(selectedEntry.bin_type.toLowerCase()).icon}
                 </span>
                 <div>
                   <p className="text-sm font-medium text-gray-700">Dispose in</p>
                   <p
                     className={`text-lg font-bold capitalize ${
-                      getBinInfo(selectedEntry.classification.recommended_bin).color
+                      getBinInfo(selectedEntry.bin_type.toLowerCase()).color
                     }`}
                   >
-                    {selectedEntry.classification.recommended_bin} Bin
+                    {selectedEntry.bin_type.toLowerCase()} Bin
                   </p>
                 </div>
-              </div>
-            )}
-
-            {/* Handling instructions */}
-            {selectedEntry.classification?.handling_instructions && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Handling Instructions
-                </p>
-                <p className="mt-1 text-gray-700">
-                  {selectedEntry.classification.handling_instructions}
-                </p>
               </div>
             )}
 

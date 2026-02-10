@@ -52,7 +52,7 @@ export function AdminAnalyticsPage() {
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['admin', 'analytics', timeRange],
     queryFn: async () => {
-      const { data } = await api.get<AnalyticsData>(`/admin/analytics?range=${timeRange}`);
+      const { data } = await api.get<AnalyticsData>(`/api/v1/admin/analytics/zones?range=${timeRange}`);
       return data;
     },
   });

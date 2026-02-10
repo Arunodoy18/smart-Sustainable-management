@@ -53,7 +53,7 @@ export function AdminDriversPage() {
       if (availabilityFilter !== 'all') params.append('availability', availabilityFilter);
       if (search) params.append('search', search);
       
-      const { data } = await api.get<Driver[]>(`/admin/drivers?${params}`);
+      const { data } = await api.get<Driver[]>(`/api/v1/admin/drivers?${params}`);
       return data;
     },
   });
@@ -61,7 +61,7 @@ export function AdminDriversPage() {
   // Toggle availability mutation
   const toggleAvailability = useMutation({
     mutationFn: async ({ driverId, available }: { driverId: string; available: boolean }) => {
-      await api.patch(`/api/v1/admin/drivers/${driverId}/availability`, { is_available: available });
+      await api.post(`/api/v1/admin/drivers/${driverId}/approve`, { is_available: available });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ADMIN', 'drivers'] });
