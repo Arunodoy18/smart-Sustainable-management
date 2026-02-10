@@ -98,18 +98,18 @@ async def upload_waste_image(
     
     # Award points for classification (base points based on confidence)
     points_awarded = 0
-    if classification.confidence_tier == ClassificationConfidence.HIGH:
+    if entry.confidence_tier == ClassificationConfidence.HIGH:
         points_awarded = 15  # High confidence = 15 points
-    elif classification.confidence_tier == ClassificationConfidence.MEDIUM:
+    elif entry.confidence_tier == ClassificationConfidence.MEDIUM:
         points_awarded = 10  # Medium confidence = 10 points
-    elif classification.confidence_tier == ClassificationConfidence.LOW:
+    elif entry.confidence_tier == ClassificationConfidence.LOW:
         points_awarded = 5   # Low confidence = 5 points
     
     if points_awarded > 0:
         await rewards_service.award_points(
             user_id=current_user.id,
             points=points_awarded,
-            reward_type=RewardType.CLASSIFICATION,
+            reward_type=RewardType.RECYCLING_POINTS,
             description=f"Waste classified as {entry.category.value}",
             waste_entry_id=entry.id,
         )
