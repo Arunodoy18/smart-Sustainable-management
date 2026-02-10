@@ -6,6 +6,7 @@ Pydantic schemas for rewards endpoints.
 """
 
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
@@ -29,6 +30,11 @@ class RewardResponse(BaseSchema, TimestampMixin):
     description: str
     waste_entry_id: UUID | None = None
     pickup_id: UUID | None = None
+
+    @classmethod
+    def from_reward(cls, reward: Any) -> "RewardResponse":
+        """Create response from reward model."""
+        return cls.model_validate(reward)
 
 
 class RewardSummary(BaseSchema):
@@ -63,9 +69,16 @@ class StreakResponse(BaseSchema):
     current_streak: int
     longest_streak: int
     last_activity_date: date | None = None
-    streak_active: bool
+    streak_active: bool = False
     next_milestone: int | None = None
     points_at_milestone: int | None = None
+
+    @classmethod
+    def from_streak(cls, streak: Any) -> "StreakResponse":
+        """Create response from streak model or return as-is if already StreakResponse."""
+        if isinstance(streak, cls):
+            return streak
+        return cls.model_validate(streak)
 
 
 class StreakMilestone(BaseSchema):
@@ -94,6 +107,39 @@ class AchievementResponse(BaseSchema):
     badge_color: str
     tier: int
     points_reward: int
+
+    @classmethod
+    def from_achievement(cls, achievement: Any, unlocked: bool = False) -> "AchievementWithProgress":
+        """Create response with progress from achievement model."""
+        return AchievementWithProgress(
+            id=achievement.id,
+            code=achievement.code,
+            name=achievement.name,
+            description=achievement.description,
+            category=achievement.category,
+            icon=achievement.icon,
+            badge_color=getattr(achievement, 'badge_color', '#6366F1'),
+            tier=achievement.tier,
+            points_reward=achievement.points_reward,
+            earned_at=None,  # Overridden in route if unlocked
+        )
+
+
+class AchievementWithProgress(BaseSchema):
+    """Achievement with user's progress info."""
+
+    id: UUID
+    code: str
+    name: str
+    description: str
+    category: AchievementCategory
+    icon: str
+    badge_color: str = "#6366F1"
+    tier: int = 1
+    points_reward: int
+    earned_at: datetime | None = None
+    progress: int = 0
+    target: int = 0
 
 
 class UserAchievementResponse(BaseSchema):

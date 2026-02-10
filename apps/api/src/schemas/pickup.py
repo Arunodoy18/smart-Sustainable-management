@@ -7,6 +7,7 @@ Pydantic schemas for pickup and driver endpoints.
 
 from datetime import date as DateType, datetime, time
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
@@ -87,6 +88,11 @@ class PickupResponse(BaseSchema, TimestampMixin):
     arrived_at: datetime | None = None
     collected_at: datetime | None = None
 
+    @classmethod
+    def from_pickup(cls, pickup: Any) -> "PickupResponse":
+        """Create response from pickup model."""
+        return cls.model_validate(pickup)
+
 
 class PickupDetailResponse(PickupResponse):
     """Detailed pickup with related information."""
@@ -100,10 +106,34 @@ class PickupDetailResponse(PickupResponse):
     user_rating: int | None = None
     user_feedback: str | None = None
 
+    @classmethod
+    def from_pickup(cls, pickup: Any) -> "PickupDetailResponse":
+        """Create detailed response from pickup model."""
+        data = {
+            c.name: getattr(pickup, c.name, None)
+            for c in pickup.__table__.columns
+        }
+        # Add driver info if relationship loaded
+        if hasattr(pickup, 'driver') and pickup.driver:
+            data["driver_name"] = f"{pickup.driver.first_name} {pickup.driver.last_name}"
+            data["driver_phone"] = getattr(pickup.driver, 'phone', None)
+        # Add waste category if relationship loaded
+        if hasattr(pickup, 'waste_entry') and pickup.waste_entry:
+            cat = pickup.waste_entry.category
+            data["waste_category"] = cat.value if hasattr(cat, 'value') else str(cat) if cat else None
+        return cls(**data)
+
 
 # =============================================================================
 # Driver Pickup Schemas
 # =============================================================================
+
+
+class DriverLocationUpdate(BaseSchema):
+    """Driver location update."""
+
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
 
 
 class DriverPickupAssignment(BaseSchema):
