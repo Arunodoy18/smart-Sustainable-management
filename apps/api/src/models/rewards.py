@@ -140,11 +140,11 @@ class UserStreak(Base):
     )
     
     # Current streak
-    current_streak: Mapped[int] = mapped_column(Integer, default=0)
+    current_streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_activity_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
     # Best streak
-    longest_streak: Mapped[int] = mapped_column(Integer, default=0)
+    longest_streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     longest_streak_start: Mapped[date | None] = mapped_column(Date, nullable=True)
     longest_streak_end: Mapped[date | None] = mapped_column(Date, nullable=True)
     
@@ -175,17 +175,17 @@ class UserPoints(Base):
     )
     
     # Point totals
-    total_points: Mapped[int] = mapped_column(Integer, default=0)
-    available_points: Mapped[int] = mapped_column(Integer, default=0)
-    redeemed_points: Mapped[int] = mapped_column(Integer, default=0)
+    total_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    available_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    redeemed_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     
     # Level
-    level: Mapped[int] = mapped_column(Integer, default=1)
-    level_progress: Mapped[int] = mapped_column(Integer, default=0)
+    level: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    level_progress: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     
     # Stats
-    total_waste_entries: Mapped[int] = mapped_column(Integer, default=0)
-    total_recycled_items: Mapped[int] = mapped_column(Integer, default=0)
+    total_waste_entries: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    total_recycled_items: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
 
 
 class Achievement(Base):

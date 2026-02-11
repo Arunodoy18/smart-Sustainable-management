@@ -56,7 +56,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error("Failed to initialize ML pipeline", error=str(e), exc_info=True)
         # Continue startup - will use fallback or fail on first request
         logger.warning("ML pipeline initialization failed - classification may not work")
-    
+
+    # Warm up the database connection pool so the first user request is fast
+    try:
+        from sqlalchemy import text
+        from src.core.database import get_session
+        async for session in get_session():
+            await session.execute(text("SELECT 1"))
+            break
+        logger.info("Database connection pool warmed up")
+    except Exception as e:
+        logger.warning("Database warmup failed (non-fatal)", error=str(e))
+
     yield
     
     # Shutdown
@@ -147,10 +158,14 @@ app.add_middleware(
 class CatchAllMiddleware(BaseHTTPMiddleware):
     """Ensures exceptions inside middleware stack don't bypass CORS."""
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        import uuid as _uuid
+        request_id = request.headers.get("x-request-id", str(_uuid.uuid4())[:8])
         try:
-            return await call_next(request)
+            response = await call_next(request)
+            response.headers["X-Request-Id"] = request_id
+            return response
         except Exception as exc:
-            logger.exception("Unhandled middleware exception", path=request.url.path)
+            logger.exception("Unhandled middleware exception", path=request.url.path, request_id=request_id)
             return JSONResponse(
                 status_code=500,
                 content={
@@ -158,6 +173,7 @@ class CatchAllMiddleware(BaseHTTPMiddleware):
                     "error": "Internal Server Error",
                     "message": "An unexpected error occurred",
                 },
+                headers={"X-Request-Id": request_id},
             )
 
 app.add_middleware(CatchAllMiddleware)
@@ -289,6 +305,12 @@ async def health_check():
 @app.get("/ready", tags=["Health"])
 async def readiness_check():
     """Readiness check endpoint."""
+    return {"ready": True, "status": "healthy"}
+
+
+@app.get("/health/ready", tags=["Health"], include_in_schema=False)
+async def health_ready_combined():
+    """Combined health/ready endpoint — Render probes this path."""
     return {"ready": True, "status": "healthy"}
 
 

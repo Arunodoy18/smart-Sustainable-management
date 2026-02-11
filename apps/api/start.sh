@@ -80,6 +80,14 @@ except Exception as e:
     print(f'Could not check migration status: {e}')
 "
 
+# Auto-run migrations if AUTO_MIGRATE=true (safe for Render deploys)
+if [ "${AUTO_MIGRATE:-false}" = "true" ]; then
+    echo ""
+    echo "AUTO_MIGRATE=true — running alembic upgrade head..."
+    cd /app 2>/dev/null || true
+    alembic upgrade head && echo "Migrations applied successfully" || echo "WARNING: Migration failed (non-fatal — app will start anyway)"
+fi
+
 echo ""
 echo "Starting uvicorn server..."
 echo "=========================================="

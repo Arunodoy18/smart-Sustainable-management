@@ -61,6 +61,18 @@ async def upload_waste_image(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="Image must be under 10MB",
         )
+
+    # Idempotency: reject duplicate uploads within 60s (same user + same file hash)
+    import hashlib
+    from src.core.cache import cache
+    file_hash = hashlib.sha256(content).hexdigest()[:16]
+    idempotency_key = f"upload:{current_user.id}:{file_hash}"
+    if await cache.get(idempotency_key):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Duplicate upload detected. Please wait before uploading the same image again.",
+        )
+    await cache.set(idempotency_key, "1", expire=60)
     
     # Upload image to storage
     try:
@@ -324,6 +336,11 @@ async def manual_classify(
     
     # Refresh entry
     entry = await waste_service.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Entry not found after classification",
+        )
     
     return WasteEntryResponse.from_entry(entry, classification)
 

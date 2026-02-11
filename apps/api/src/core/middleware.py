@@ -71,7 +71,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
-        self.exclude_paths = exclude_paths or ["/health", "/ready", "/docs", "/redoc", "/openapi.json"]
+        self.exclude_paths = exclude_paths or ["/health", "/health/ready", "/ready", "/docs", "/redoc", "/openapi.json"]
         
         # Store buckets per identifier
         self._buckets: dict[str, TokenBucket] = defaultdict(
