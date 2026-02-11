@@ -148,7 +148,23 @@ async def upload_waste_image(
     await session.commit()
     await session.refresh(entry)
     
-    return WasteEntryResponse.from_entry(entry, classification)
+    # Query final points summary for the response
+    from src.models.rewards import UserPoints
+    from sqlalchemy import select as sa_select
+    _pts_result = await session.execute(
+        sa_select(UserPoints).where(UserPoints.user_id == current_user.id)
+    )
+    _user_points = _pts_result.scalar_one_or_none()
+    _total_points = (_user_points.total_points or 0) if _user_points else 0
+    _level = (_user_points.level or 1) if _user_points else 1
+    
+    return WasteEntryResponse.from_entry(
+        entry,
+        classification,
+        points_awarded=points_awarded,
+        total_points=_total_points,
+        level=_level,
+    )
 
 
 @router.get(

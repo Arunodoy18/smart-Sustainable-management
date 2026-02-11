@@ -102,8 +102,20 @@ class WasteEntryResponse(BaseSchema, TimestampMixin):
     # Notes
     user_notes: str | None = None
 
+    # Points (populated on upload)
+    points_awarded: int = 0
+    total_points: int = 0
+    level: int = 1
+
     @classmethod
-    def from_entry(cls, entry, classification=None) -> "WasteEntryResponse":
+    def from_entry(
+        cls,
+        entry,
+        classification=None,
+        points_awarded: int = 0,
+        total_points: int = 0,
+        level: int = 1,
+    ) -> "WasteEntryResponse":
         """Create response from WasteEntry model."""
         return cls(
             id=entry.id,
@@ -124,6 +136,9 @@ class WasteEntryResponse(BaseSchema, TimestampMixin):
             estimated_weight_kg=entry.estimated_weight_kg,
             co2_saved_kg=entry.co2_saved_kg,
             user_notes=entry.user_notes,
+            points_awarded=points_awarded,
+            total_points=total_points,
+            level=level,
             created_at=entry.created_at,
             updated_at=entry.updated_at,
         )

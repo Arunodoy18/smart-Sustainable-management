@@ -57,45 +57,22 @@ export function AdminAnalyticsPage() {
     },
   });
 
-  // Mock data for demo
-  const mockAnalytics: AnalyticsData = {
-    waste_by_category: [
-      { category: 'Recyclable', count: 4523, percentage: 38 },
-      { category: 'Organic', count: 3156, percentage: 26 },
-      { category: 'General', count: 2134, percentage: 18 },
-      { category: 'Electronic', count: 1245, percentage: 10 },
-      { category: 'Hazardous', count: 956, percentage: 8 },
-    ],
-    daily_uploads: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      count: Math.floor(Math.random() * 100) + 50,
-    })),
-    pickup_status: [
-      { status: 'Completed', count: 5234 },
-      { status: 'Pending', count: 156 },
-      { status: 'In Progress', count: 89 },
-      { status: 'Cancelled', count: 45 },
-    ],
-    user_growth: Array.from({ length: 12 }, (_, i) => ({
-      date: new Date(Date.now() - (11 - i) * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short' }),
-      users: Math.floor(Math.random() * 200) + 100 * (i + 1),
-      drivers: Math.floor(Math.random() * 10) + 5 * (i + 1),
-    })),
-    zone_performance: [
-      { zone: 'Zone A', pickups: 1234, rating: 4.8 },
-      { zone: 'Zone B', pickups: 987, rating: 4.6 },
-      { zone: 'Zone C', pickups: 756, rating: 4.9 },
-      { zone: 'Zone D', pickups: 543, rating: 4.5 },
-    ],
+  // Mock data for demo — removed: use only real API data
+  const emptyAnalytics: AnalyticsData = {
+    waste_by_category: [],
+    daily_uploads: [],
+    pickup_status: [],
+    user_growth: [],
+    zone_performance: [],
     environmental_impact: {
-      total_co2_saved: 4523.5,
-      total_items_recycled: 15678,
-      water_saved_liters: 125000,
-      trees_equivalent: 89,
+      total_co2_saved: 0,
+      total_items_recycled: 0,
+      water_saved_liters: 0,
+      trees_equivalent: 0,
     },
   };
 
-  const displayAnalytics = analytics || mockAnalytics;
+  const displayAnalytics = analytics || emptyAnalytics;
 
   if (isLoading) {
     return (

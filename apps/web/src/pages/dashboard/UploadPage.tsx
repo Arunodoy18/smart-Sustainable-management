@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CloudArrowUpIcon,
@@ -20,12 +20,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { api } from '@/lib';
+import { useAuth } from '@/lib/auth';
 import { useUploadStore } from '@/stores';
 import { Card, Button, Badge, Progress, Spinner } from '@/components/ui';
 import { CameraCapture } from '@/components/CameraCapture';
 import type { WasteCategory, BinType, ConfidenceTier } from '@/types';
 
-// Match backend WasteEntryResponse structure
+// Match backend WasteEntryResponse structure (includes points)
 interface UploadResult {
   id: string;
   category: WasteCategory | null;
@@ -34,11 +35,15 @@ interface UploadResult {
   ai_confidence: number | null;
   confidence_tier: ConfidenceTier | null;
   user_notes: string | null;
-  // Points are calculated separately - assume 10 for now
+  points_awarded: number;
+  total_points: number;
+  level: number;
 }
 
 export function UploadPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { refreshUser } = useAuth();
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
@@ -68,6 +73,11 @@ export function UploadPage() {
     onSuccess: (data) => {
       setResult(data);
       setIsUploading(false);
+      // Invalidate all related caches so Dashboard, Rewards, History update instantly
+      queryClient.invalidateQueries({ queryKey: ['rewards'] });
+      queryClient.invalidateQueries({ queryKey: ['waste'] });
+      // Refresh global user state (total_points, level, etc.)
+      refreshUser();
     },
     onError: () => {
       setIsUploading(false);
@@ -249,7 +259,9 @@ export function UploadPage() {
                         Classification Complete!
                       </h3>
                       <p className="mt-1 text-sm text-gray-600">
-                        You earned +10 points 🎉
+                        {result.points_awarded > 0
+                          ? `You earned +${result.points_awarded} points 🎉`
+                          : 'Image saved (no points for unclassified items)'}
                       </p>
                     </div>
                   </div>

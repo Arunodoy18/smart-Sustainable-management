@@ -153,7 +153,10 @@ export interface WasteEntry {
   // Impact
   estimated_weight_kg?: number;
   co2_saved_kg?: number;
-  // Points
+  // Points (populated on upload response)
+  points_awarded?: number;
+  total_points?: number;
+  level?: number;
   points_earned?: number;
   created_at: string;
   updated_at: string;

@@ -76,37 +76,30 @@ export function AdminDashboardPage() {
     },
   });
 
-  // Mock data for demo
-  const mockStats: AdminStats = {
-    total_users: 1234,
-    active_users: 892,
-    total_drivers: 45,
-    active_drivers: 38,
-    total_pickups: 5678,
-    completed_pickups: 5234,
-    pending_pickups: 156,
-    total_waste_entries: 15678,
-    co2_saved_kg: 4523.5,
-    growth_rate: 12.5,
+  // Mock data for demo — removed: use only real API data
+  const emptyStats: AdminStats = {
+    total_users: 0,
+    active_users: 0,
+    total_drivers: 0,
+    active_drivers: 0,
+    total_pickups: 0,
+    completed_pickups: 0,
+    pending_pickups: 0,
+    total_waste_entries: 0,
+    co2_saved_kg: 0,
+    growth_rate: 0,
   };
 
-  const mockActivity: RecentActivity[] = [
-    { id: '1', type: 'user_registered', description: 'New user John Doe registered', timestamp: new Date().toISOString() },
-    { id: '2', type: 'pickup_completed', description: 'Pickup #5678 completed by Driver Alex', timestamp: new Date(Date.now() - 3600000).toISOString() },
-    { id: '3', type: 'classification', description: '50 waste items classified today', timestamp: new Date(Date.now() - 7200000).toISOString() },
-    { id: '4', type: 'driver_assigned', description: 'Driver Maria assigned to Zone A', timestamp: new Date(Date.now() - 10800000).toISOString() },
-  ];
-
-  const mockHealth: SystemHealth = {
+  const emptyHealth: SystemHealth = {
     api_status: 'healthy',
     database_status: 'healthy',
     ml_service_status: 'healthy',
-    storage_usage_percent: 45,
+    storage_usage_percent: 0,
   };
 
-  const displayStats = stats || mockStats;
-  const displayActivity = activity || mockActivity;
-  const displayHealth = health || mockHealth;
+  const displayStats = stats || emptyStats;
+  const displayActivity = activity || [];
+  const displayHealth = health || emptyHealth;
 
   if (loadingStats) {
     return (
@@ -192,7 +185,7 @@ export function AdminDashboardPage() {
               </span>
             </div>
             <Progress
-              value={(displayStats.completed_pickups / displayStats.total_pickups) * 100}
+              value={displayStats.total_pickups > 0 ? (displayStats.completed_pickups / displayStats.total_pickups) * 100 : 0}
               color="success"
             />
             
@@ -203,7 +196,7 @@ export function AdminDashboardPage() {
               </span>
             </div>
             <Progress
-              value={(displayStats.pending_pickups / displayStats.total_pickups) * 100}
+              value={displayStats.total_pickups > 0 ? (displayStats.pending_pickups / displayStats.total_pickups) * 100 : 0}
               color="warning"
             />
 
@@ -211,7 +204,7 @@ export function AdminDashboardPage() {
               <p className="text-sm text-gray-500">
                 Completion Rate:{' '}
                 <span className="font-semibold text-gray-900">
-                  {((displayStats.completed_pickups / displayStats.total_pickups) * 100).toFixed(1)}%
+                  {displayStats.total_pickups > 0 ? ((displayStats.completed_pickups / displayStats.total_pickups) * 100).toFixed(1) : '0.0'}%
                 </span>
               </p>
             </div>

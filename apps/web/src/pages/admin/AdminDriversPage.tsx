@@ -68,72 +68,14 @@ export function AdminDriversPage() {
     },
   });
 
-  // Mock data for demo
-  const mockDrivers: Driver[] = [
-    {
-      id: '1',
-      email: 'alex@driver.com',
-      first_name: 'Alex',
-      last_name: 'Johnson',
-      role: 'DRIVER',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-      driver_profile: {
-        vehicle_type: 'Pickup Truck',
-        license_number: 'DL-123456',
-        zone: 'Zone A - Downtown',
-        total_pickups: 342,
-        rating: 4.8,
-        is_available: true,
-      },
-    },
-    {
-      id: '2',
-      email: 'maria@driver.com',
-      first_name: 'Maria',
-      last_name: 'Garcia',
-      role: 'DRIVER',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-      driver_profile: {
-        vehicle_type: 'Van',
-        license_number: 'DL-789012',
-        zone: 'Zone B - Suburbs',
-        total_pickups: 256,
-        rating: 4.9,
-        is_available: true,
-      },
-    },
-    {
-      id: '3',
-      email: 'james@driver.com',
-      first_name: 'James',
-      last_name: 'Wilson',
-      role: 'DRIVER',
-      status: 'ACTIVE',
-      email_verified: true,
-      created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date().toISOString(),
-      driver_profile: {
-        vehicle_type: 'Large Truck',
-        license_number: 'DL-345678',
-        zone: 'Zone C - Industrial',
-        total_pickups: 189,
-        rating: 4.6,
-        is_available: false,
-      },
-    },
-  ];
-
-  const displayDrivers = drivers || mockDrivers;
+  // Mock data for demo — removed: use only real API data
+  const displayDrivers = drivers || [];
 
   const availableCount = displayDrivers.filter((d) => d.driver_profile?.is_available).length;
   const totalPickups = displayDrivers.reduce((sum, d) => sum + (d.driver_profile?.total_pickups || 0), 0);
-  const avgRating = displayDrivers.reduce((sum, d) => sum + (d.driver_profile?.rating || 0), 0) / displayDrivers.length;
+  const avgRating = displayDrivers.length > 0
+    ? displayDrivers.reduce((sum, d) => sum + (d.driver_profile?.rating || 0), 0) / displayDrivers.length
+    : 0;
 
   return (
     <div>

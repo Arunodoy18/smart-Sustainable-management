@@ -95,11 +95,14 @@ export function DriverMapPage() {
 
   const activePickups = pickups?.filter((p) => ['ASSIGNED', 'EN_ROUTE'].includes(p.status)) || [];
 
-  // Mock coordinates for demo (in real app, these would come from geocoding)
+  // Use real coordinates from pickup data; fall back to offset from driver location
   const getPickupCoordinates = (pickup: Pickup, index: number): [number, number] => {
+    if (pickup.latitude != null && pickup.longitude != null) {
+      return [pickup.latitude, pickup.longitude];
+    }
+    // Fallback: spread around current location (only when backend has no coords)
     const baseLat = currentLocation?.lat || 40.7128;
     const baseLng = currentLocation?.lng || -74.006;
-    // Spread pickups around current location
     const offset = 0.02;
     return [
       baseLat + (Math.sin(index * 1.5) * offset),
