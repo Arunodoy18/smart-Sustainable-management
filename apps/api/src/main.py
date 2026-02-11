@@ -118,14 +118,8 @@ app.add_middleware(
     allow_origin_regex=origins_regex,
     allow_origins=allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-    ],
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=[
         "X-RateLimit-Limit",
         "X-RateLimit-Remaining",
@@ -136,12 +130,37 @@ app.add_middleware(
 
 
 # Rate limiting – added AFTER CORS (Starlette processes last-added first)
+# This means RateLimit runs BEFORE CORS, so we must catch errors inside it
+# to prevent exceptions from bypassing CORS headers.
 from src.core.middleware import RateLimitMiddleware
 app.add_middleware(
     RateLimitMiddleware,
     requests_per_minute=settings.rate_limit_requests_per_minute,
     burst_size=settings.rate_limit_burst,
 )
+
+
+# ---------------------------------------------------------------------------
+# Safety middleware: catch unhandled exceptions INSIDE the middleware stack
+# so CORS headers are always applied to the response.
+# ---------------------------------------------------------------------------
+class CatchAllMiddleware(BaseHTTPMiddleware):
+    """Ensures exceptions inside middleware stack don't bypass CORS."""
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            logger.exception("Unhandled middleware exception", path=request.url.path)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error": "Internal Server Error",
+                    "message": "An unexpected error occurred",
+                },
+            )
+
+app.add_middleware(CatchAllMiddleware)
 
 
 # Exception handlers

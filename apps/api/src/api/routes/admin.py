@@ -616,7 +616,7 @@ async def approve_driver(
     profile = result.scalar_one_or_none()
     
     if profile:
-        profile.status = DriverStatus.AVAILABLE
+        profile.status = DriverStatus.APPROVED
     
     driver.status = UserStatus.ACTIVE
     await session.flush()

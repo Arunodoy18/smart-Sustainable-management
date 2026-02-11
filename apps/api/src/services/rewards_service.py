@@ -156,24 +156,42 @@ class RewardsService:
                 user_id=user_id,
                 total_points=0,
                 available_points=0,
+                level=1,
+                level_progress=0,
+                redeemed_points=0,
             )
             self.session.add(user_points)
+
+        # Null-safety: backfill any NULL fields from legacy rows
+        if user_points.level is None:
+            user_points.level = 1
+        if user_points.total_points is None:
+            user_points.total_points = 0
+        if user_points.available_points is None:
+            user_points.available_points = 0
+        if user_points.redeemed_points is None:
+            user_points.redeemed_points = 0
+        if user_points.level_progress is None:
+            user_points.level_progress = 0
 
         user_points.total_points += points_delta
         user_points.available_points += points_delta
 
         # Update level
+        current_level = user_points.level or 1
         new_level = self._calculate_level(user_points.total_points)
-        if new_level > user_points.level:
+        if new_level > current_level:
             user_points.level = new_level
             # Could trigger level-up notification here
 
         # Calculate progress to next level
-        current_threshold = LEVEL_THRESHOLDS[user_points.level - 1]
+        safe_level = user_points.level or 1
+        level_index = max(0, min(safe_level - 1, len(LEVEL_THRESHOLDS) - 1))
+        current_threshold = LEVEL_THRESHOLDS[level_index]
         next_threshold = (
-            LEVEL_THRESHOLDS[user_points.level]
-            if user_points.level < len(LEVEL_THRESHOLDS)
-            else current_threshold
+            LEVEL_THRESHOLDS[safe_level]
+            if safe_level < len(LEVEL_THRESHOLDS)
+            else current_threshold + 1000
         )
         user_points.level_progress = user_points.total_points - current_threshold
 
@@ -212,20 +230,23 @@ class RewardsService:
                 longest_streak=streak.longest_streak if streak else 0,
             )
 
-        # Calculate points to next level
-        current_threshold = LEVEL_THRESHOLDS[user_points.level - 1]
+        # Calculate points to next level (null-safe)
+        safe_level = user_points.level or 1
+        safe_total = user_points.total_points or 0
+        level_index = max(0, min(safe_level - 1, len(LEVEL_THRESHOLDS) - 1))
+        current_threshold = LEVEL_THRESHOLDS[level_index]
         next_threshold = (
-            LEVEL_THRESHOLDS[user_points.level]
-            if user_points.level < len(LEVEL_THRESHOLDS)
+            LEVEL_THRESHOLDS[safe_level]
+            if safe_level < len(LEVEL_THRESHOLDS)
             else current_threshold + 1000
         )
-        points_to_next = next_threshold - user_points.total_points
+        points_to_next = next_threshold - safe_total
 
         return RewardSummary(
-            total_points=user_points.total_points,
-            available_points=user_points.available_points,
+            total_points=safe_total,
+            available_points=user_points.available_points or 0,
             redeemed_points=user_points.redeemed_points or 0,
-            level=user_points.level,
+            level=safe_level,
             level_progress=user_points.level_progress or 0,
             points_to_next_level=max(0, points_to_next),
             current_streak=streak.current_streak if streak else 0,
@@ -239,10 +260,11 @@ class RewardsService:
         )
         user_points = result.scalar_one_or_none()
 
-        level = user_points.level if user_points else 1
-        total_points = user_points.total_points if user_points else 0
+        level = (user_points.level if user_points and user_points.level else 1)
+        total_points = (user_points.total_points if user_points and user_points.total_points else 0)
 
-        current_threshold = LEVEL_THRESHOLDS[level - 1]
+        level_index = max(0, min(level - 1, len(LEVEL_THRESHOLDS) - 1))
+        current_threshold = LEVEL_THRESHOLDS[level_index]
         next_threshold = (
             LEVEL_THRESHOLDS[level]
             if level < len(LEVEL_THRESHOLDS)
@@ -677,15 +699,17 @@ class RewardsService:
             user = users.get(row.user_id)
             user_points = points.get(row.user_id)
             if user:
+                last_initial = user.last_name[0] if user.last_name else ""
+                display = f"{user.first_name or 'User'} {last_initial}." if last_initial else (user.first_name or "User")
                 entries.append(
                     LeaderboardEntry(
                         rank=rank,
                         user_id=row.user_id,
-                        display_name=f"{user.first_name} {user.last_name[0]}.",
+                        display_name=display,
                         avatar_url=user.avatar_url,
                         points=row.total_points,
-                        level=user_points.level if user_points else 1,
-                        total_entries=user_points.total_waste_entries if user_points else 0,
+                        level=(user_points.level or 1) if user_points else 1,
+                        total_entries=(user_points.total_waste_entries or 0) if user_points else 0,
                     )
                 )
 

@@ -1,14 +1,19 @@
+# Core
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
+
+# Database
 sqlalchemy[asyncio]>=2.0.25
 asyncpg>=0.29.0
-psycopg2-binary>=2.9.9
 alembic>=1.13.0
-redis>=5.0.0
+
+# Auth
 python-jose[cryptography]>=3.3.0
 passlib[argon2]>=1.7.4
+
+# Utilities
 python-multipart>=0.0.6
 aiofiles>=23.2.0
 httpx>=0.26.0
@@ -19,9 +24,11 @@ structlog>=24.1.0
 email-validator>=2.1.0
 tenacity>=8.2.0
 orjson>=3.9.0
-transformers>=4.38.0
+redis>=5.0.0
+
+# ML (CPU-only torch to fit Render 512MB free tier)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.1.0
 torchvision>=0.16.0
-pillow>=10.2.0
 sentencepiece>=0.1.99
 protobuf>=3.20.0

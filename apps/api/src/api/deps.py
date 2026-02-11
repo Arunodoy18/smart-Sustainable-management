@@ -168,8 +168,9 @@ async def get_current_user_or_guest(
     guest_user = await auth_service.get_user_by_email(guest_email)
     
     if not guest_user:
-        # Create guest user
+        # Create guest user (handle race condition with concurrent requests)
         from src.schemas.user import UserCreate
+        from sqlalchemy.exc import IntegrityError
         guest_data = UserCreate(
             email=guest_email,
             password="GuestUser123!",  # Not used for guest access
@@ -177,7 +178,11 @@ async def get_current_user_or_guest(
             last_name="User",
             role=UserRole.CITIZEN,
         )
-        guest_user = await auth_service.create_user(guest_data, commit=True)
+        try:
+            guest_user = await auth_service.create_user(guest_data, commit=True)
+        except (IntegrityError, Exception):
+            await session.rollback()
+            guest_user = await auth_service.get_user_by_email(guest_email)
     
     return guest_user
 

@@ -118,8 +118,28 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Check if this is a 401 error and we have a token to refresh
     const isRetry = (originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry;
+    const retryCount = (originalRequest as any)._retryCount || 0;
+
+    // ---------- Network / cold-start retry (max 2 retries) ----------
+    // Render free tier spins down after inactivity; first request may fail
+    // with a network error or CORS error (because 502/503 has no CORS headers).
+    if (
+      !error.response && // No HTTP response = network error / CORS-masked error
+      retryCount < 2 &&
+      !isRetry
+    ) {
+      (originalRequest as any)._retryCount = retryCount + 1;
+      // Exponential backoff: 2s, 4s
+      const delay = (retryCount + 1) * 2000;
+      logger.warn(`Network error, retrying in ${delay}ms (attempt ${retryCount + 1}/2)`, {
+        url: originalRequest.url,
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return api(originalRequest);
+    }
+
+    // ---------- 401 token refresh ----------
     const refreshToken = getRefreshToken();
     
     // Only attempt token refresh if we have a refresh token and haven't retried yet
@@ -166,6 +186,20 @@ api.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // ---------- 5xx server errors - retry once ----------
+    if (
+      error.response &&
+      error.response.status >= 500 &&
+      retryCount < 1
+    ) {
+      (originalRequest as any)._retryCount = retryCount + 1;
+      logger.warn(`Server error ${error.response.status}, retrying once`, {
+        url: originalRequest.url,
+      });
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      return api(originalRequest);
     }
 
     // Log API error

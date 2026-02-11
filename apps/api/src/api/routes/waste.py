@@ -94,7 +94,15 @@ async def upload_waste_image(
     )
     
     # Run AI classification
-    classification = await waste_service.classify_entry(entry.id)
+    try:
+        classification = await waste_service.classify_entry(entry.id)
+    except Exception as e:
+        # Classification failed — still save the entry (unclassified)
+        import traceback
+        from src.core.logging import get_logger
+        _logger = get_logger(__name__)
+        _logger.error("Classification failed", entry_id=str(entry.id), error=str(e), traceback=traceback.format_exc())
+        classification = None
     
     # Refresh entry to get classification results (classify_entry modifies a different object)
     await session.refresh(entry)
@@ -110,13 +118,19 @@ async def upload_waste_image(
     
     if points_awarded > 0:
         category_desc = entry.category.value if entry.category else "unknown"
-        await rewards_service.award_points(
-            user_id=current_user.id,
-            points=points_awarded,
-            reward_type=RewardType.RECYCLING_POINTS,
-            description=f"Waste classified as {category_desc}",
-            waste_entry_id=entry.id,
-        )
+        try:
+            await rewards_service.award_points(
+                user_id=current_user.id,
+                points=points_awarded,
+                reward_type=RewardType.RECYCLING_POINTS,
+                description=f"Waste classified as {category_desc}",
+                waste_entry_id=entry.id,
+            )
+        except Exception as e:
+            # Rewards failure should not block upload
+            from src.core.logging import get_logger
+            _logger = get_logger(__name__)
+            _logger.error("Award points failed", error=str(e))
     
     # Commit all changes
     await session.commit()
