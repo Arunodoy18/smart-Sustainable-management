@@ -14,6 +14,18 @@ import { logger } from './logger';
 // All API calls should include /api/v1 in their path
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+/**
+ * Resolve a potentially-relative image URL (e.g. /storage/uploads/...)
+ * into a full URL pointing at the backend.
+ */
+export function resolveImageUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  // Already absolute
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Relative path like /storage/uploads/... → prepend API base
+  return `${API_BASE_URL}${url}`;
+}
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

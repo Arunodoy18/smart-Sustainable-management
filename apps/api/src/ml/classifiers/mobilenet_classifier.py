@@ -60,15 +60,28 @@ class MobileNetWasteClassifier(BaseClassifier):
         self._loaded = False
 
         # ImageNet class indices that map to waste categories
+        # Expanded mapping for better real-world coverage
         self.imagenet_to_waste: dict[int, WasteCategory] = {
-            # Organic/Food waste (ImageNet food classes 924-969)
+            # ── Organic / Food waste ──
+            # ImageNet food classes (924–969) + additional food/plant items
             **{i: WasteCategory.ORGANIC for i in range(924, 970)},
+            **{i: WasteCategory.ORGANIC for i in [
+                281, 282, 283,  # cats eating food (domestic scenes)
+                948, 949, 950, 951, 952, 953, 954, 955, 956, 957,
+                958, 959, 960, 961, 962, 963, 964, 965, 966, 967,
+                968, 969,  # various fruits + food
+                987, 988, 989, 990, 991, 992, 993, 994, 995, 996, 997, 998,  # food items
+                984, 985, 986  # mushroom, ear of corn, acorn
+            ]},
 
-            # Recyclable materials
+            # ── Recyclable materials ──
             **{i: WasteCategory.RECYCLABLE for i in [
+                # Bottles & containers
                 440,  # beer bottle
+                504,  # bottle cap
                 509,  # water bottle
-                648,  # steel drum
+                550,  # espresso maker (metal)
+                647, 648,  # steel drum, barrel
                 728,  # plastic bag
                 737,  # pop bottle / soda bottle
                 760,  # jar / can
@@ -76,33 +89,102 @@ class MobileNetWasteClassifier(BaseClassifier):
                 899,  # wine bottle
                 907,  # bucket
                 910,  # wooden spoon (wood)
+                # Paper, cardboard, packaging
+                446,  # binder
+                525,  # cardboard box (combination)
+                547,  # envelope
+                548,  # book
+                549,  # book jacket
+                551,  # paper towel
+                600,  # folding chair (metal scrap)
+                621,  # letter opener
+                623,  # library
+                630,  # lotion bottle
+                653,  # mailbag
+                658,  # mailing envelope
+                692,  # newspaper
+                # Cans, tins, aluminium
+                759,  # tin can / pop can
+                761,  # packet
+                813,  # shopping cart (metal)
+                819,  # soup bowl
+                849,  # teapot (ceramic)
+                # Glass
+                504,  # coffee mug
+                968,  # cup
+                # General recyclable containers
+                671,  # measuring cup
+                720,  # pill bottle
+                725,  # pitcher
+                731,  # plunger
+                755,  # rain barrel
+                805,  # swimming trunks (textile recycling)
+                834,  # suit/clothing (textile)
             ]},
 
-            # Electronic waste
+            # ── Electronic waste ──
             **{i: WasteCategory.ELECTRONIC for i in [
                 487,  # cell phone
                 491,  # CRT screen
+                508,  # computer keyboard
                 527,  # desktop computer
                 528,  # dial telephone
-                590,  # hand-held computer
+                530,  # digital clock
+                531,  # digital watch
+                548,  # disk brake
+                558,  # electric fan
+                571,  # electric guitar
+                590,  # hand-held computer / PDA
+                606,  # iPod
+                609,  # joystick
                 620,  # laptop
                 621,  # LCD screen
+                638,  # magnetic compass
+                639,  # disk
+                640,  # hard drive
                 664,  # monitor
-                681,  # notebook
+                667,  # modem
+                671,  # mouse (computer)
+                681,  # notebook (laptop)
+                707,  # power drill
+                710,  # printer
+                720,  # projector
                 722,  # photocopier
-                770,  # remote control
-                776,  # mouse
-                782,  # screen
+                730,  # earphone (plug)
+                748,  # radio / boom-box
+                753,  # remote control
+                770,  # rotary phone
+                776,  # computer mouse
+                782,  # screen / monitor
+                790,  # speaker
                 851,  # television
+                846,  # tape player
+                860,  # toaster
+                862,  # torch / flashlight
+                896,  # washing machine
+                900,  # vacuum
             ]},
 
-            # Hazardous
+            # ── Hazardous ──
             **{i: WasteCategory.HAZARDOUS for i in [
                 470,  # candle (wax chemicals)
+                475,  # car wheel / tire
+                517,  # crash helmet (composite)
+                553,  # fire engine (indicates hazard)
+                626,  # lighter
+                629,  # loupe / magnifying glass with chemicals
+                653,  # matchstick
+                # Paint & chemicals
+                813,  # safety pin
+                867,  # tractor (diesel/oil)
             ]},
 
-            # Medical
-            **{804: WasteCategory.MEDICAL},  # syringe
+            # ── Medical ──
+            **{i: WasteCategory.MEDICAL for i in [
+                700,  # oxygen mask
+                804,  # syringe
+                543,  # stethoscope
+            ]},
         }
 
     # -------------------------------------------------------------------
@@ -181,15 +263,48 @@ class MobileNetWasteClassifier(BaseClassifier):
         # Map ImageNet classes to waste categories
         category_scores: dict[WasteCategory, float] = {cat: 0.0 for cat in WasteCategory}
 
+        matched_any = False
         for prob, idx in zip(top_probs, top_indices):
             idx_int = int(idx)
             if idx_int in self.imagenet_to_waste:
                 waste_cat = self.imagenet_to_waste[idx_int]
                 category_scores[waste_cat] += float(prob)
+                matched_any = True
+
+        # Texture/scene heuristics: if top ImageNet class wasn't in our map,
+        # use color and brightness analysis for a secondary signal.
+        if not matched_any or max(category_scores.values()) < 0.15:
+            img_array = np.array(image.resize((64, 64)))
+            avg = img_array.mean(axis=(0, 1))
+            if len(avg) >= 3:
+                r, g, b = avg[:3]
+                brightness = (r + g + b) / 3
+                # Green-dominant → likely organic/garden
+                if g > r * 1.15 and g > b * 1.15:
+                    category_scores[WasteCategory.ORGANIC] += 0.25
+                # Blue-dominant → plastic/recyclable
+                elif b > r * 1.1 and b > g:
+                    category_scores[WasteCategory.RECYCLABLE] += 0.20
+                # Shiny/bright → glass/metal/recyclable
+                elif brightness > 180:
+                    category_scores[WasteCategory.RECYCLABLE] += 0.18
+                # Dark → general
+                elif brightness < 80:
+                    category_scores[WasteCategory.GENERAL] += 0.15
+                # Brown-ish → organic or cardboard
+                elif r > 120 and g > 80 and b < 100:
+                    category_scores[WasteCategory.ORGANIC] += 0.15
+                    category_scores[WasteCategory.RECYCLABLE] += 0.10
 
         # Best category
         best_cat = max(category_scores, key=lambda c: category_scores[c])
         confidence = category_scores[best_cat]
+
+        # Boost confidence when there's a clear winner
+        second_best = sorted(category_scores.values(), reverse=True)[1] if len(category_scores) > 1 else 0
+        margin = confidence - second_best
+        if margin > 0.1 and confidence < 0.7:
+            confidence = min(confidence + margin * 0.3, 0.85)
 
         # Low confidence -> fall back to GENERAL
         if confidence < self.MIN_CONFIDENCE_THRESHOLD:

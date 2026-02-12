@@ -371,6 +371,105 @@ export function PickupsPage() {
   );
 }
 
+// Status timeline steps for the progress stepper
+const TIMELINE_STEPS: { status: PickupStatus; label: string; icon: string }[] = [
+  { status: 'REQUESTED', label: 'Requested', icon: '📋' },
+  { status: 'ASSIGNED', label: 'Assigned', icon: '👤' },
+  { status: 'EN_ROUTE', label: 'En Route', icon: '🚛' },
+  { status: 'ARRIVED', label: 'Arrived', icon: '📍' },
+  { status: 'COLLECTED', label: 'Collected', icon: '✅' },
+];
+
+function PickupStatusTimeline({ currentStatus }: { currentStatus: PickupStatus }) {
+  if (currentStatus === 'CANCELLED' || currentStatus === 'FAILED') {
+    return (
+      <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-sm text-gray-500">
+        {currentStatus === 'CANCELLED' ? '❌ This pickup was cancelled' : '⚠️ This pickup failed'}
+      </div>
+    );
+  }
+
+  const currentIndex = TIMELINE_STEPS.findIndex((s) => s.status === currentStatus);
+
+  return (
+    <div className="mt-4">
+      {/* Desktop / wider view */}
+      <div className="hidden sm:flex items-center justify-between">
+        {TIMELINE_STEPS.map((step, idx) => {
+          const isDone = idx < currentIndex;
+          const isCurrent = idx === currentIndex;
+          const isFuture = idx > currentIndex;
+
+          return (
+            <div key={step.status} className="flex flex-1 items-center">
+              {/* Node */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-full text-sm transition-all',
+                    isDone && 'bg-green-500 text-white',
+                    isCurrent && 'bg-primary-500 text-white ring-4 ring-primary-100',
+                    isFuture && 'bg-gray-200 text-gray-400'
+                  )}
+                >
+                  {isDone ? '✓' : step.icon}
+                </div>
+                <span
+                  className={cn(
+                    'mt-1 text-[10px] font-medium leading-tight text-center',
+                    isDone && 'text-green-600',
+                    isCurrent && 'text-primary-600 font-semibold',
+                    isFuture && 'text-gray-400'
+                  )}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {/* Connector line */}
+              {idx < TIMELINE_STEPS.length - 1 && (
+                <div
+                  className={cn(
+                    'mx-1 h-0.5 flex-1',
+                    idx < currentIndex ? 'bg-green-400' : 'bg-gray-200'
+                  )}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Mobile compact view */}
+      <div className="sm:hidden flex items-center gap-1.5">
+        {TIMELINE_STEPS.map((step, idx) => {
+          const isDone = idx < currentIndex;
+          const isCurrent = idx === currentIndex;
+          const isFuture = idx > currentIndex;
+
+          return (
+            <div key={step.status} className="flex flex-1 items-center">
+              <div
+                className={cn(
+                  'h-2 flex-1 rounded-full transition-all',
+                  isDone && 'bg-green-400',
+                  isCurrent && 'bg-primary-500',
+                  isFuture && 'bg-gray-200'
+                )}
+                title={step.label}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <p className="sm:hidden mt-1.5 text-xs text-center text-gray-500">
+        {TIMELINE_STEPS[currentIndex]?.icon} {TIMELINE_STEPS[currentIndex]?.label}
+        {currentIndex < TIMELINE_STEPS.length - 1 &&
+          ` → Next: ${TIMELINE_STEPS[currentIndex + 1]?.label}`}
+      </p>
+    </div>
+  );
+}
+
 // Pickup Card Component
 function PickupCard({
   pickup,
@@ -414,6 +513,9 @@ function PickupCard({
               </div>
             </div>
 
+            {/* Status Progress Timeline */}
+            <PickupStatusTimeline currentStatus={pickup.status} />
+
             <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <CalendarIcon className="h-4 w-4" />
@@ -425,10 +527,17 @@ function PickupCard({
               </span>
               {pickup.qr_code && (
                 <span className="text-xs font-mono text-gray-400">
-                  {pickup.qr_code}
+                  QR: {pickup.qr_code.slice(0, 8)}…
                 </span>
               )}
             </div>
+
+            {/* Driver info when assigned */}
+            {pickup.driver_id && ['ASSIGNED', 'EN_ROUTE', 'ARRIVED'].includes(pickup.status) && (
+              <div className="mt-2 flex items-center gap-2 rounded-md bg-blue-50 px-3 py-1.5 text-xs text-blue-700">
+                <span>🚚 Driver assigned — your pickup is being handled</span>
+              </div>
+            )}
           </div>
 
           {pickup.status === 'REQUESTED' && onCancel && (

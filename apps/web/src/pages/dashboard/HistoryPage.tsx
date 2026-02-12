@@ -15,7 +15,7 @@ import {
   ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 
-import { api, formatDate } from '@/lib';
+import { api, formatDate, resolveImageUrl } from '@/lib';
 import { Card, Badge, Input, Button, EmptyState, Spinner, Modal } from '@/components/ui';
 import type { WasteEntry, WasteCategory } from '@/types';
 
@@ -161,12 +161,15 @@ export function HistoryPage() {
                 <div className="flex flex-col gap-4 sm:flex-row">
                   {/* Image */}
                   <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                    {entry.image_url && (
+                    {entry.image_url ? (
                       <img
-                        src={entry.image_url}
-                        alt="Waste"
+                        src={resolveImageUrl(entry.image_thumbnail_url || entry.image_url)}
+                        alt={entry.category ? `${entry.category} waste` : 'Waste image'}
                         className="h-full w-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-gray-400 text-xs">No image</div>
                     )}
                   </div>
 
@@ -221,9 +224,14 @@ export function HistoryPage() {
                       <span className="text-gray-500">
                         {formatDate(entry.created_at)}
                       </span>
-                      {entry.points_earned && entry.points_earned > 0 && (
+                      {entry.points_awarded && entry.points_awarded > 0 && (
                         <span className="text-primary-600 font-medium">
-                          +{entry.points_earned} pts
+                          +{entry.points_awarded} pts
+                        </span>
+                      )}
+                      {entry.address && (
+                        <span className="text-gray-500 truncate max-w-[200px]" title={entry.address}>
+                          📍 {entry.address}
                         </span>
                       )}
                     </div>
@@ -276,12 +284,15 @@ export function HistoryPage() {
           <div className="space-y-4">
             {/* Image */}
             <div className="overflow-hidden rounded-lg bg-gray-100">
-              {selectedEntry.image_url && (
+              {selectedEntry.image_url ? (
                 <img
-                  src={selectedEntry.image_url}
-                  alt="Waste"
+                  src={resolveImageUrl(selectedEntry.image_url)}
+                  alt={selectedEntry.category ? `${selectedEntry.category} waste` : 'Waste image'}
                   className="h-64 w-full object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
+              ) : (
+                <div className="flex h-64 w-full items-center justify-center text-gray-400">No image available</div>
               )}
             </div>
 
@@ -341,12 +352,20 @@ export function HistoryPage() {
             )}
 
             {/* Metadata */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-4 text-sm text-gray-500">
-              <span>Uploaded {formatDate(selectedEntry.created_at)}</span>
-              {selectedEntry.points_earned && selectedEntry.points_earned > 0 && (
-                <span className="text-primary-600 font-medium">
-                  +{selectedEntry.points_earned} points earned
-                </span>
+            <div className="flex flex-col gap-2 border-t border-gray-200 pt-4 text-sm text-gray-500">
+              <div className="flex items-center justify-between">
+                <span>Uploaded {formatDate(selectedEntry.created_at)}</span>
+                {(selectedEntry.points_awarded ?? 0) > 0 && (
+                  <span className="text-primary-600 font-medium">
+                    +{selectedEntry.points_awarded} points earned
+                  </span>
+                )}
+              </div>
+              {selectedEntry.address && (
+                <div className="flex items-center gap-1">
+                  <span>📍</span>
+                  <span className="text-gray-600">{selectedEntry.address}</span>
+                </div>
               )}
             </div>
           </div>

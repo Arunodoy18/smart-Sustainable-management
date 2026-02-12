@@ -5,7 +5,7 @@
  * Waste image upload with AI classification.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -17,6 +17,7 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
   CameraIcon,
+  MapPinIcon,
 } from '@heroicons/react/24/outline';
 
 import { api } from '@/lib';
@@ -48,7 +49,23 @@ export function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationLabel, setLocationLabel] = useState<string>('');
   const { uploadProgress, setUploadProgress, setIsUploading } = useUploadStore();
+
+  // Auto-detect user location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setLocationLabel(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+        },
+        () => { /* user denied — that's fine */ },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, []);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -58,7 +75,19 @@ export function UploadPage() {
       setIsUploading(true);
       setUploadProgress(0);
 
-      const { data } = await api.post<UploadResult>('/api/v1/waste/upload', formData, {
+      // Build query params for location
+      const params = new URLSearchParams();
+      if (userLocation) {
+        params.append('latitude', userLocation.lat.toString());
+        params.append('longitude', userLocation.lng.toString());
+      }
+      if (locationLabel) {
+        params.append('address', locationLabel);
+      }
+      const qs = params.toString();
+      const url = `/api/v1/waste/upload${qs ? `?${qs}` : ''}`;
+
+      const { data } = await api.post<UploadResult>(url, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -222,6 +251,7 @@ export function UploadPage() {
                 {!uploadMutation.isPending && !result && (
                   <button
                     onClick={handleClear}
+                    title="Remove image"
                     className="absolute right-3 top-3 rounded-full bg-white/90 p-1.5 shadow-lg transition-colors hover:bg-white"
                   >
                     <XMarkIcon className="h-5 w-5 text-gray-600" />
@@ -243,6 +273,27 @@ export function UploadPage() {
               )}
             </Card>
 
+            {/* Location indicator */}
+            {!result && (
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                <MapPinIcon className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                {userLocation ? (
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={locationLabel}
+                      onChange={(e) => setLocationLabel(e.target.value)}
+                      placeholder="Add a description (e.g. Near Main Street park)"
+                      className="w-full border-none bg-transparent text-sm text-gray-700 focus:outline-none focus:ring-0 p-0"
+                    />
+                    <p className="text-xs text-green-600 mt-0.5">📍 Location detected</p>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-500">Location not available — enable GPS for better tracking</span>
+                )}
+              </div>
+            )}
+
             {/* Classification result */}
             {result && (
               <motion.div
@@ -263,6 +314,11 @@ export function UploadPage() {
                           ? `You earned +${result.points_awarded} points 🎉`
                           : 'Image saved (no points for unclassified items)'}
                       </p>
+                      {result.total_points > 0 && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Total: {result.total_points} points · Level {result.level}
+                        </p>
+                      )}
                     </div>
                   </div>
 
