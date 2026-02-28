@@ -104,12 +104,12 @@ class User(Base):
     waste_entries: Mapped[list["WasteEntry"]] = relationship(
         "WasteEntry",
         back_populates="user",
-        lazy="selectin",
+        lazy="noload",  # Prevent N+1 — use selectinload() explicitly in queries that need it
     )
     rewards: Mapped[list["Reward"]] = relationship(
         "Reward",
         back_populates="user",
-        lazy="selectin",
+        lazy="noload",  # Prevent N+1 — use selectinload() explicitly in queries that need it
     )
     user_streak: Mapped["UserStreak | None"] = relationship(
         "UserStreak",

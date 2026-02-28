@@ -7,7 +7,7 @@ File storage abstraction for local filesystem and S3-compatible storage.
 
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO
@@ -77,7 +77,7 @@ class StorageService:
         # Generate unique filename
         ext = Path(filename).suffix.lower() or ".jpg"
         unique_name = f"{uuid.uuid4()}{ext}"
-        date_prefix = datetime.utcnow().strftime("%Y/%m/%d")
+        date_prefix = datetime.now(timezone.utc).strftime("%Y/%m/%d")
         key = f"uploads/{user_id}/{date_prefix}/{unique_name}"
 
         thumbnail_url = None

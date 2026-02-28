@@ -24,6 +24,7 @@ from src.schemas.waste import (
 from src.services import WasteService
 from src.services.rewards_service import RewardsService, RewardType
 from src.services.storage_service import storage, StorageError
+from src.core.circuit_breaker import ml_breaker, storage_breaker, CircuitBreakerError
 
 router = APIRouter(prefix="/waste", tags=["Waste Management"])
 
@@ -74,12 +75,18 @@ async def upload_waste_image(
         )
     await cache.set(idempotency_key, "1", expire=60)
     
-    # Upload image to storage
+    # Upload image to storage (with circuit breaker)
     try:
-        image_url, thumbnail_url = await storage.upload_image(
-            content=content,
-            filename=file.filename or "upload.jpg",
-            user_id=str(current_user.id),
+        async with storage_breaker:
+            image_url, thumbnail_url = await storage.upload_image(
+                content=content,
+                filename=file.filename or "upload.jpg",
+                user_id=str(current_user.id),
+            )
+    except CircuitBreakerError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Storage service temporarily unavailable. Please try again later.",
         )
     except StorageError as e:
         raise HTTPException(
@@ -105,16 +112,22 @@ async def upload_waste_image(
         thumbnail_url=thumbnail_url,
     )
     
-    # Run AI classification
+    # Run AI classification (with circuit breaker)
+    classification = None
     try:
-        classification = await waste_service.classify_entry(entry.id)
+        async with ml_breaker:
+            classification = await waste_service.classify_entry(entry.id)
+    except CircuitBreakerError:
+        # ML service is tripped — entry saved without classification
+        from src.core.logging import get_logger
+        _logger = get_logger(__name__)
+        _logger.warning("ML circuit breaker open — skipping classification", entry_id=str(entry.id))
     except Exception as e:
         # Classification failed — still save the entry (unclassified)
         import traceback
         from src.core.logging import get_logger
         _logger = get_logger(__name__)
         _logger.error("Classification failed", entry_id=str(entry.id), error=str(e), traceback=traceback.format_exc())
-        classification = None
     
     # Refresh entry to get classification results (classify_entry modifies a different object)
     await session.refresh(entry)
@@ -147,7 +160,20 @@ async def upload_waste_image(
     # Commit all changes
     await session.commit()
     await session.refresh(entry)
-    
+
+    # Emit domain event for downstream processors
+    try:
+        from src.core.events import ClassificationCompleteEvent, event_bus
+        if entry.category:
+            await event_bus.publish(ClassificationCompleteEvent(
+                entry_id=str(entry.id),
+                user_id=str(current_user.id),
+                category=entry.category.value,
+                confidence=float(entry.confidence_score or 0),
+            ))
+    except Exception:
+        pass  # Event emission is best-effort
+
     # Query final points summary for the response
     from src.models.rewards import UserPoints
     from sqlalchemy import select as sa_select

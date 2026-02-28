@@ -153,6 +153,19 @@ async def login(
             ip_address=client_ip,
         )
         logger.info(f"User logged in successfully: {data.email}")
+
+        # Audit log
+        from src.core.audit import audit_log
+        await audit_log.record(
+            session,
+            action="user.login",
+            resource_type="user",
+            user_id=str(tokens.user.id) if tokens.user else None,
+            description=f"Login from {client_ip}",
+            ip_address=client_ip,
+            user_agent=user_agent,
+        )
+
         return tokens
     except AuthenticationError as e:
         logger.info(f"Login failed: {str(e)} for email: {data.email}")
@@ -206,9 +219,27 @@ async def logout(
     data: RefreshTokenRequest,
     session: DbSession,
 ):
-    """Logout and revoke refresh token."""
+    """Logout and revoke refresh token + add to blocklist."""
     auth_service = AuthService(session)
     await auth_service.logout(data.refresh_token)
+
+    # Also add the refresh token to the blocklist (if valid)
+    from src.core.security import decode_token
+    from src.core.token_blocklist import token_blocklist
+    payload = decode_token(data.refresh_token)
+    if payload:
+        await token_blocklist.revoke(payload, raw_token=data.refresh_token)
+
+        # Audit log
+        from src.core.audit import audit_log
+        await audit_log.record(
+            session,
+            action="user.logout",
+            resource_type="user",
+            user_id=payload.get("sub"),
+            description="User logged out",
+        )
+
     return SuccessResponse(message="Logged out successfully")
 
 
@@ -222,9 +253,24 @@ async def logout_all(
     current_user: CurrentUser,
     session: DbSession,
 ):
-    """Logout from all devices."""
+    """Logout from all devices and invalidate all existing tokens."""
     auth_service = AuthService(session)
     await auth_service.logout_all_devices(current_user.id)
+
+    # Mass-revoke all tokens for this user
+    from src.core.token_blocklist import token_blocklist
+    await token_blocklist.revoke_all_for_user(str(current_user.id))
+
+    # Audit log
+    from src.core.audit import audit_log
+    await audit_log.record(
+        session,
+        action="user.logout_all",
+        resource_type="user",
+        user_id=current_user.id,
+        description="All sessions invalidated",
+    )
+
     return SuccessResponse(message="Logged out from all devices")
 
 
@@ -298,7 +344,21 @@ async def change_password(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
         )
-    
+
+    # Force re-login after password change
+    from src.core.token_blocklist import token_blocklist
+    await token_blocklist.revoke_all_for_user(str(current_user.id))
+
+    # Audit log
+    from src.core.audit import audit_log
+    await audit_log.record(
+        session,
+        action="user.password_changed",
+        resource_type="user",
+        user_id=current_user.id,
+        description="Password changed — all sessions invalidated",
+    )
+
     return SuccessResponse(message="Password changed successfully")
 
 

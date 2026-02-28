@@ -46,7 +46,26 @@ async def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # Check token blocklist (logout / forced invalidation)
+    from src.core.token_blocklist import token_blocklist
+    if await token_blocklist.is_revoked(credentials.credentials):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
+    # Check user-level mass revocation
+    iat = payload.get("iat", 0)
+    user_id_str = payload.get("sub", "")
+    if user_id_str and await token_blocklist.is_user_revoked_since(user_id_str, int(iat)):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="All sessions invalidated — please log in again",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
@@ -142,8 +161,8 @@ async def get_current_user_or_guest(
     """
     Get current authenticated user, or create/return a guest user for public access.
     
-    This allows the app to work without authentication while maintaining
-    the same API structure.
+    The guest user is created with a cryptographically random password that is
+    never stored in plaintext, making it impossible to log in as the guest user.
     """
     # Try to get authenticated user first
     if credentials:
@@ -160,20 +179,20 @@ async def get_current_user_or_guest(
             pass  # Fall through to guest user
     
     # No valid authentication - use guest user
-    # Check if guest user exists, create if not
     auth_service = AuthService(session)
     
-    # Use a fixed email for the guest user
     guest_email = "guest@smartwaste.app"
     guest_user = await auth_service.get_user_by_email(guest_email)
     
     if not guest_user:
-        # Create guest user (handle race condition with concurrent requests)
+        # Create guest user with a random password so it cannot be logged into
+        import secrets
         from src.schemas.user import UserCreate
         from sqlalchemy.exc import IntegrityError
+        random_password = secrets.token_urlsafe(64)
         guest_data = UserCreate(
             email=guest_email,
-            password="GuestUser123!",  # Not used for guest access
+            password=random_password,
             first_name="Guest",
             last_name="User",
             role=UserRole.CITIZEN,

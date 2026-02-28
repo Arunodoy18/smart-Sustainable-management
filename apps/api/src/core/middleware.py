@@ -138,6 +138,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return response
 
 
+import asyncio
+
+
 class SlowdownMiddleware(BaseHTTPMiddleware):
     """
     Adaptive slowdown middleware for suspected abuse.
@@ -176,6 +179,3 @@ class SlowdownMiddleware(BaseHTTPMiddleware):
             await asyncio.sleep(delay / 1000)
         
         return await call_next(request)
-
-
-import asyncio

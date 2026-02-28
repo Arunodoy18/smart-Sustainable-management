@@ -414,7 +414,7 @@ class PickupService:
             driver_id=driver_id,
             event_type="pickup_completed",
             pickup_id=pickup_id,
-            metadata={"weight_kg": str(data.weight_collected_kg) if data.weight_collected_kg else None},
+            extra_data={"weight_kg": str(data.weight_collected_kg) if data.weight_collected_kg else None},
         )
         self.session.add(log)
 
@@ -539,7 +539,7 @@ class PickupService:
             log = DriverLog(
                 driver_id=driver_id,
                 event_type="availability_changed",
-                metadata={"is_available": is_available},
+                extra_data={"is_available": is_available},
             )
             self.session.add(log)
             await self.session.flush()

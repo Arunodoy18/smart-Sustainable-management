@@ -285,7 +285,7 @@ export function AdminUsersPage() {
               Update status for <strong>{selectedUser.first_name} {selectedUser.last_name}</strong>
             </p>
             <div className="space-y-2">
-              {(['ACTIVE', 'INACTIVE', 'SUSPENDED'] as UserStatus[]).map((status) => (
+              {(['ACTIVE', 'SUSPENDED', 'DEACTIVATED'] as UserStatus[]).map((status) => (
                 <button
                   key={status}
                   onClick={() => updateStatus.mutate({ userId: selectedUser.id, status })}

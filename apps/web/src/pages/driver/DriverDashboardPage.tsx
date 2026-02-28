@@ -45,7 +45,7 @@ export function DriverDashboardPage() {
   const { data: stats, isLoading: loadingStats } = useQuery({
     queryKey: ['DRIVER', 'stats'],
     queryFn: async () => {
-      const { data } = await api.get<DriverStats>('/pickups/driver/stats');
+      const { data } = await api.get<DriverStats>('/api/v1/pickups/driver/stats');
       return data;
     },
   });
@@ -54,12 +54,12 @@ export function DriverDashboardPage() {
   const { data: pickups, isLoading: loadingPickups } = useQuery({
     queryKey: ['DRIVER', 'pickups'],
     queryFn: async () => {
-      const { data } = await api.get<Pickup[]>('/pickups/driver/assigned');
+      const { data } = await api.get<Pickup[]>('/api/v1/pickups/driver/assigned');
       return data;
     },
   });
 
-  const activePickups = pickups?.filter((p) => ['assigned', 'EN_ROUTE'].includes(p.status)) || [];
+  const activePickups = pickups?.filter((p) => ['ASSIGNED', 'EN_ROUTE'].includes(p.status)) || [];
   const inProgress = pickups?.find((p) => p.status === 'EN_ROUTE');
 
   if (loadingStats || loadingPickups) {

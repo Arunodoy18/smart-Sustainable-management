@@ -159,6 +159,11 @@ def verify_token_type(token: str, expected_type: str) -> dict[str, Any] | None:
         
     Returns:
         Decoded payload if valid and correct type, None otherwise
+    
+    Note:
+        This is a synchronous check. For async blocklist checking, callers
+        should also call ``token_blocklist.is_revoked(token)`` separately
+        in async contexts (e.g. deps.py).
     """
     payload = decode_token(token)
     if payload and payload.get("type") == expected_type:

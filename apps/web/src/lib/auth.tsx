@@ -1,21 +1,23 @@
 /**
  * Authentication Context & Provider
  * ==================================
- * 
- * React context for authentication state management.
+ *
+ * Unified auth using Zustand store as the single source of truth.
+ * The Context/Provider pattern is kept for tree-level access and
+ * bootstrap logic, but ALL state lives in the Zustand `useAuthStore`.
  */
 
 import {
   createContext,
   useContext,
   useEffect,
-  useState,
   useCallback,
   ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import api, { getAccessToken, setTokens, clearTokens } from './api';
+import { useAuthStore } from '@/stores';
 import type {
   User,
   UserProfile,
@@ -45,7 +47,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ============================================================================
-// PROVIDER
+// PROVIDER — delegates all state to Zustand store
 // ============================================================================
 
 interface AuthProviderProps {
@@ -53,37 +55,44 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Fetch current user
+  // ---- read from Zustand (single source of truth) ----
+  const user = useAuthStore((s) => s.user) as UserProfile | null;
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const storeSetUser = useAuthStore((s) => s.setUser);
+  const storeClearUser = useAuthStore((s) => s.clearUser);
+  const storeSetLoading = useAuthStore((s) => s.setLoading);
+
+  // Fetch current user from API and push into Zustand
   const fetchUser = useCallback(async () => {
     try {
       const token = getAccessToken();
       if (!token) {
-        setUser(null);
+        storeClearUser();
         return;
       }
 
       const response = await api.get<UserProfile>('/api/v1/auth/me');
-      setUser(response.data);
-    } catch (error) {
-      setUser(null);
+      storeSetUser(response.data as unknown as User);
+    } catch (_error) {
+      storeClearUser();
       clearTokens();
     }
-  }, []);
+  }, [storeSetUser, storeClearUser]);
 
-  // Initial load
+  // Bootstrap on mount
   useEffect(() => {
     const initAuth = async () => {
-      setIsLoading(true);
+      storeSetLoading(true);
       await fetchUser();
-      setIsLoading(false);
+      storeSetLoading(false);
     };
 
     initAuth();
-  }, [fetchUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Login
   const login = useCallback(
@@ -92,15 +101,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const response = await api.post<TokenResponse>('/api/v1/auth/login', data);
         const { access_token, refresh_token, user: userData } = response.data;
 
-        // Set tokens FIRST and wait a tick to ensure storage is complete
         setTokens(access_token, refresh_token);
-        await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for storage
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-        // Fetch user profile with the new token
+        // Push user into Zustand immediately
+        storeSetUser(userData as unknown as User);
+
+        // Also hydrate from /me to get full profile
         await fetchUser();
-
-        // Set user immediately from login response to avoid loading state
-        setUser(userData as UserProfile);
 
         // Redirect based on role
         switch (userData.role) {
@@ -114,20 +122,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
             navigate('/dashboard');
         }
       } catch (error) {
-        // Clear tokens on login failure
         clearTokens();
-        setUser(null);
+        storeClearUser();
         throw error;
       }
     },
-    [fetchUser, navigate]
+    [fetchUser, navigate, storeSetUser, storeClearUser]
   );
 
   // Register
   const register = useCallback(
     async (data: RegisterRequest) => {
       await api.post<User>('/api/v1/auth/register', data);
-      // Auto-login after registration
       await login({ email: data.email, password: data.password });
     },
     [login]
@@ -139,14 +145,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await api.post('/api/v1/auth/logout', {
         refresh_token: localStorage.getItem('smart_waste_refresh_token'),
       });
-    } catch (error) {
+    } catch (_error) {
       // Ignore errors on logout
     } finally {
       clearTokens();
-      setUser(null);
+      storeClearUser();
       navigate('/login');
     }
-  }, [navigate]);
+  }, [navigate, storeClearUser]);
 
   // Refresh user data
   const refreshUser = useCallback(async () => {
@@ -156,7 +162,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated,
     login,
     register,
     logout,

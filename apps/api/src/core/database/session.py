@@ -42,9 +42,14 @@ else:
         pool_recycle=3600,  # Recycle connections after 1 hour
     )
 
-# Create async engine for testing (no connection pooling)
+# Create async engine for testing — uses a separate test database URL if set,
+# otherwise falls back to an in-memory SQLite to avoid touching production data.
+import os as _os
+_test_db_url = _os.environ.get(
+    "TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:"
+)
 test_engine = create_async_engine(
-    database_url,
+    _test_db_url,
     echo=settings.debug,
     poolclass=NullPool,
 )

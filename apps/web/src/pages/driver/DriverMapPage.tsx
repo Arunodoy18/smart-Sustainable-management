@@ -69,7 +69,7 @@ export function DriverMapPage() {
   const { data: pickups, isLoading } = useQuery({
     queryKey: ['driver', 'pickups'],
     queryFn: async () => {
-      const { data } = await api.get<Pickup[]>('/pickups/driver/assigned');
+      const { data } = await api.get<Pickup[]>('/api/v1/pickups/driver/assigned');
       return data;
     },
   });

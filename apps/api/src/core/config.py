@@ -9,7 +9,7 @@ All configuration is loaded from environment variables with sensible defaults.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, computed_field
+from pydantic import AliasChoices, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     allowed_origins: str = Field(
         default="https://wastifi.netlify.app,http://localhost:3000,http://localhost:5173,http://localhost:8080",
         description="Comma-separated list of allowed CORS origins",
+        validation_alias=AliasChoices("allowed_origins", "ALLOWED_ORIGINS", "cors_origins", "CORS_ORIGINS"),
     )
 
     # Database
@@ -154,6 +155,19 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = Field(default=None, description="Sentry DSN")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO", description="Log level"
+    )
+
+    # OpenTelemetry
+    otel_enabled: bool = Field(
+        default=False, description="Enable OpenTelemetry instrumentation"
+    )
+    otel_exporter_otlp_endpoint: str = Field(
+        default="http://localhost:4317",
+        description="OTLP exporter gRPC endpoint",
+    )
+    otel_service_name: str = Field(
+        default="smart-waste-api",
+        description="OpenTelemetry service name",
     )
 
     # Feature Flags

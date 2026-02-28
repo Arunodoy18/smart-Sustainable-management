@@ -3,9 +3,10 @@ Redis Client Configuration
 ===========================
 
 Async Redis client for caching and real-time features.
-Falls back to in-memory cache when Redis is unavailable.
+Falls back to in-memory cache **with TTL support** when Redis is unavailable.
 """
 
+import time
 from typing import Any
 
 from src.core.config import settings
@@ -25,8 +26,34 @@ except ImportError:
 # Global Redis client instance
 _redis_client: "Redis | None" = None
 
-# In-memory fallback cache
-_memory_cache: dict[str, Any] = {}
+# In-memory fallback cache with TTL: key -> (value, expire_timestamp | None)
+_memory_cache: dict[str, tuple[Any, float | None]] = {}
+
+
+def _memory_get(key: str) -> Any | None:
+    """Read from in-memory cache, respecting TTL."""
+    entry = _memory_cache.get(key)
+    if entry is None:
+        return None
+    value, expires_at = entry
+    if expires_at is not None and time.monotonic() > expires_at:
+        _memory_cache.pop(key, None)
+        return None
+    return value
+
+
+def _memory_set(key: str, value: Any, ttl: int | None = None) -> None:
+    """Write to in-memory cache with optional TTL in seconds."""
+    expires_at = (time.monotonic() + ttl) if ttl else None
+    _memory_cache[key] = (value, expires_at)
+
+
+def _memory_delete(key: str) -> None:
+    _memory_cache.pop(key, None)
+
+
+def _memory_exists(key: str) -> bool:
+    return _memory_get(key) is not None
 
 
 async def get_redis() -> "Redis | None":
@@ -125,17 +152,17 @@ class CacheService:
             Cached value or None if not found
         """
         if self._use_memory:
-            return _memory_cache.get(self._make_key(key))
+            return _memory_get(self._make_key(key))
         
         client = await self._get_client()
         if client is None:
-            return _memory_cache.get(self._make_key(key))
+            return _memory_get(self._make_key(key))
         
         try:
             value = await client.get(self._make_key(key))
             return value
         except Exception:
-            return _memory_cache.get(self._make_key(key))
+            return _memory_get(self._make_key(key))
 
     async def set(
         self,
@@ -160,19 +187,19 @@ class CacheService:
         cache_key = self._make_key(key)
         
         if self._use_memory:
-            _memory_cache[cache_key] = value
+            _memory_set(cache_key, value, effective_ttl)
             return True
         
         client = await self._get_client()
         if client is None:
-            _memory_cache[cache_key] = value
+            _memory_set(cache_key, value, effective_ttl)
             return True
         
         try:
             await client.set(cache_key, value, ex=effective_ttl)
             return True
         except Exception:
-            _memory_cache[cache_key] = value
+            _memory_set(cache_key, value, effective_ttl)
             return True
 
     async def delete(self, key: str) -> bool:
@@ -188,19 +215,19 @@ class CacheService:
         cache_key = self._make_key(key)
         
         if self._use_memory:
-            _memory_cache.pop(cache_key, None)
+            _memory_delete(cache_key)
             return True
         
         client = await self._get_client()
         if client is None:
-            _memory_cache.pop(cache_key, None)
+            _memory_delete(cache_key)
             return True
         
         try:
             result = await client.delete(cache_key)
             return bool(result)
         except Exception:
-            _memory_cache.pop(cache_key, None)
+            _memory_delete(cache_key)
             return True
 
     async def exists(self, key: str) -> bool:
@@ -216,17 +243,17 @@ class CacheService:
         cache_key = self._make_key(key)
         
         if self._use_memory:
-            return cache_key in _memory_cache
+            return _memory_exists(cache_key)
         
         client = await self._get_client()
         if client is None:
-            return cache_key in _memory_cache
+            return _memory_exists(cache_key)
         
         try:
             result = await client.exists(cache_key)
             return bool(result)
         except Exception:
-            return cache_key in _memory_cache
+            return _memory_exists(cache_key)
 
     async def increment(self, key: str, amount: int = 1) -> int:
         """
@@ -242,24 +269,24 @@ class CacheService:
         cache_key = self._make_key(key)
         
         if self._use_memory:
-            current = _memory_cache.get(cache_key, 0)
+            current = _memory_get(cache_key) or 0
             new_value = int(current) + amount
-            _memory_cache[cache_key] = new_value
+            _memory_set(cache_key, new_value)
             return new_value
         
         client = await self._get_client()
         if client is None:
-            current = _memory_cache.get(cache_key, 0)
+            current = _memory_get(cache_key) or 0
             new_value = int(current) + amount
-            _memory_cache[cache_key] = new_value
+            _memory_set(cache_key, new_value)
             return new_value
         
         try:
             return await client.incr(cache_key, amount)
         except Exception:
-            current = _memory_cache.get(cache_key, 0)
+            current = _memory_get(cache_key) or 0
             new_value = int(current) + amount
-            _memory_cache[cache_key] = new_value
+            _memory_set(cache_key, new_value)
             return new_value
 
     async def expire(self, key: str, ttl: int) -> bool:
@@ -274,7 +301,11 @@ class CacheService:
             True if expiration was set
         """
         if self._use_memory:
-            return True  # Memory cache doesn't support TTL
+            # Re-set value with new TTL
+            val = _memory_get(self._make_key(key))
+            if val is not None:
+                _memory_set(self._make_key(key), val, ttl)
+            return True
         
         client = await self._get_client()
         if client is None:

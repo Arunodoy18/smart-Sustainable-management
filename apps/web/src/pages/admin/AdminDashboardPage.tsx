@@ -58,14 +58,8 @@ export function AdminDashboardPage() {
     },
   });
 
-  // Fetch recent activity
-  const { data: activity } = useQuery({
-    queryKey: ['admin', 'activity'],
-    queryFn: async () => {
-      const { data } = await api.get<RecentActivity[]>('/api/v1/admin/dashboard');
-      return data;
-    },
-  });
+  // Extract recent activity from dashboard stats (avoids double-query)
+  const activity = (stats as any)?.recent_activity as RecentActivity[] | undefined;
 
   // Fetch system health
   const { data: health } = useQuery({

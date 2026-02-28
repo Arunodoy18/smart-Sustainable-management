@@ -456,7 +456,7 @@ class WasteService:
         row = result.one()
 
         total = row.total or 0
-        recyclable_count = category_counts.get("recyclable", 0) + category_counts.get("organic", 0)
+        recyclable_count = category_counts.get("RECYCLABLE", 0) + category_counts.get("ORGANIC", 0)
         recycling_rate = (recyclable_count / total * 100) if total > 0 else 0
 
         return WasteHistorySummary(

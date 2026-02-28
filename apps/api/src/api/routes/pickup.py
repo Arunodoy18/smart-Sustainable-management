@@ -435,21 +435,38 @@ async def get_driver_stats(
     current_user: PublicUser,
     session: DbSession,
 ):
-    """Get driver's statistics."""
-    pickup_service = PickupService(session)
+    """Get driver's statistics using SQL aggregation (no N+1)."""
+    from sqlalchemy import func, case, select
+    from src.models.pickup import Pickup
 
-    # Return basic stats from driver pickups
-    pickups = await pickup_service.get_driver_pickups(
-        driver_id=current_user.id,
-        limit=1000,
+    # Single SQL query with conditional aggregation
+    stmt = (
+        select(
+            func.count(Pickup.id).label("total_pickups"),
+            func.count(
+                case((Pickup.status == PickupStatus.COLLECTED, Pickup.id))
+            ).label("completed_pickups"),
+            func.count(
+                case(
+                    (
+                        Pickup.status.in_([
+                            PickupStatus.ASSIGNED,
+                            PickupStatus.EN_ROUTE,
+                            PickupStatus.ARRIVED,
+                        ]),
+                        Pickup.id,
+                    )
+                )
+            ).label("active_pickups"),
+        )
+        .where(Pickup.driver_id == current_user.id)
     )
 
-    completed = [p for p in pickups if p.status == PickupStatus.COLLECTED]
+    result = await session.execute(stmt)
+    row = result.one()
 
     return {
-        "total_pickups": len(pickups),
-        "completed_pickups": len(completed),
-        "active_pickups": len([p for p in pickups if p.status in [
-            PickupStatus.ASSIGNED, PickupStatus.EN_ROUTE, PickupStatus.ARRIVED
-        ]]),
+        "total_pickups": row.total_pickups or 0,
+        "completed_pickups": row.completed_pickups or 0,
+        "active_pickups": row.active_pickups or 0,
     }

@@ -1,0 +1,20 @@
+{
+  "name": "Smart Waste AI",
+  "short_name": "WasteAI",
+  "description": "Intelligent waste classification and collection platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#22c55e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "lifestyle"],
+  "prefer_related_applications": false
+}
