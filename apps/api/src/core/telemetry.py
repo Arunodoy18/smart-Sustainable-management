@@ -51,18 +51,20 @@ def setup_telemetry(app: Any) -> None:
 
     try:
         from opentelemetry import metrics, trace
-        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
-            OTLPMetricExporter,
-        )
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
-            OTLPSpanExporter,
-        )
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         from opentelemetry.sdk.metrics import MeterProvider
         from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+        # Prefer HTTP exporter (lighter, no grpcio dependency)
+        try:
+            from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        except ImportError:
+            from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+            from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     except ImportError as exc:
         logger.warning(
             "OpenTelemetry SDK not installed — skipping instrumentation",
@@ -80,13 +82,14 @@ def setup_telemetry(app: Any) -> None:
 
     # -- Tracing --
     tracer_provider = TracerProvider(resource=resource)
-    span_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint)
+    otel_endpoint = settings.otel_exporter_otlp_endpoint
+    span_exporter = OTLPSpanExporter(endpoint=otel_endpoint)
     tracer_provider.add_span_processor(BatchSpanProcessor(span_exporter))
     trace.set_tracer_provider(tracer_provider)
     _tracer = trace.get_tracer(__name__)
 
     # -- Metrics --
-    metric_exporter = OTLPMetricExporter(endpoint=settings.otel_exporter_otlp_endpoint)
+    metric_exporter = OTLPMetricExporter(endpoint=otel_endpoint)
     metric_reader = PeriodicExportingMetricReader(metric_exporter, export_interval_millis=15_000)
     meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
     metrics.set_meter_provider(meter_provider)
